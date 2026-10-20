@@ -1,0 +1,9 @@
+# PyTorch NON e' in questo elenco: va installato a parte con la versione CUDA giusta
+# (vedi README, passo 3). Il resto:
+transformers>=4.46
+accelerate
+streamlit>=1.50
+plotly>=5.20
+pandas
+numpy
+openpyxl

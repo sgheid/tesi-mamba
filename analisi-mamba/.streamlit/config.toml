@@ -1,0 +1,24 @@
+[theme]
+base = "light"
+primaryColor = "#2a78d6"
+backgroundColor = "#f7f8fb"
+secondaryBackgroundColor = "#eef2f8"
+textColor = "#16233a"
+font = "Segoe UI Variable Text, Segoe UI, system-ui, sans-serif"
+headingFont = "Segoe UI Variable Display, Segoe UI, system-ui, sans-serif"
+codeFont = "Cascadia Code, JetBrains Mono, Consolas, monospace"
+baseRadius = "0.6rem"
+borderColor = "#dfe5ee"
+showWidgetBorder = true
+
+[theme.sidebar]
+backgroundColor = "#eef2f8"
+secondaryBackgroundColor = "#f3f6fb"
+
+[server]
+headless = false
+# Il file watcher scorre tutto transformers e riempie la console di errori innocui
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
