@@ -6,7 +6,8 @@ import plotly.graph_objects as go
 BLU = "#4c9aff"
 BLU_CHIARO = "#8cc2ff"
 BLU_TENUE = "rgba(76, 154, 255, 0.18)"
-ARANCIO = "#ff8a4c"
+# Arancione = formato ridotto (FP16/BF16) sovrapposto al FP32 in blu; il rosso resta per le soglie
+ARANCIO = "#eb6834"
 ROSSO_STATO = "#ff6b6b"
 ROSSO_TENUE = "rgba(255, 107, 107, 0.12)"
 VERDE_STATO = "#3ccf73"
@@ -118,19 +119,22 @@ def scala_log(fig, asse, minimo, massimo, margine=0.3):
     _aggiorna_asse(fig, asse, range=[lo, hi], dtick=1 if decadi <= 10 else (2 if decadi <= 20 else 3))
 
 
-def marcatore(dimensione=7):
-    return dict(size=dimensione, color=BLU, line=dict(color=SUPERFICIE, width=1.5))
+def marcatore(dimensione=7, colore=BLU):
+    return dict(size=dimensione, color=colore, line=dict(color=SUPERFICIE, width=1.5))
 
 
-# Fascia min–max con la mediana in evidenza; nomi = (bordo superiore, mediana, bordo inferiore)
-def fascia_min_mediana_max(fig, x, y_min, y_med, y_max, nomi, unita="", formato=".2e"):
+# Fascia min–max con la mediana in evidenza; nomi = (bordo superiore, mediana, bordo inferiore).
+# Con colore (es. ARANCIO, formato ridotto) solo le tre linee, senza riempimento, da sovrapporre alla fascia FP32
+def fascia_min_mediana_max(fig, x, y_min, y_med, y_max, nomi, unita="", formato=".2e", colore=None):
     sup, med, inf = nomi
     hover = lambda nome: f"%{{y:{formato}}}{unita}<extra>{nome}</extra>"
+    bordo = colore or BLU_CHIARO
     fig.add_trace(go.Scatter(x=x, y=y_max, name=sup, mode="lines",
-                             line=dict(color=BLU_CHIARO, width=1.5), hovertemplate=hover(sup)))
+                             line=dict(color=bordo, width=1.5, dash="dash" if colore else None),
+                             hovertemplate=hover(sup)))
+    riempimento = {} if colore else dict(fill="tonexty", fillcolor=BLU_TENUE)
     fig.add_trace(go.Scatter(x=x, y=y_min, name=inf, mode="lines",
-                             line=dict(color=BLU_CHIARO, width=1.5, dash="dot"),
-                             fill="tonexty", fillcolor=BLU_TENUE, hovertemplate=hover(inf)))
+                             line=dict(color=bordo, width=1.5, dash="dot"), **riempimento, hovertemplate=hover(inf)))
     fig.add_trace(go.Scatter(x=x, y=y_med, name=med, mode="lines+markers",
-                             line=dict(color=BLU, width=2.5),
-                             marker=marcatore(), hovertemplate=hover(med)))
+                             line=dict(color=colore or BLU, width=2.5 if not colore else 2),
+                             marker=marcatore(colore=colore or BLU), hovertemplate=hover(med)))

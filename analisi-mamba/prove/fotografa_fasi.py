@@ -1,6 +1,8 @@
 # Fotografia dei risultati: esegue ogni fase di fasi/ in tutte le combinazioni dei parametri sul testo di esempio
 # e salva in JSON righe per strato, indicatori, evidenze e formato; con --confronta segnala ogni differenza.
-# Uso:  python prove/fotografa_fasi.py cartella_uscita [--confronta cartella_riferimento] [--modello 130m] [--gpu]
+# Le fasi con il parametro "Confronto" girano anche nel controllo FP32 contro FP32, che non compare nel menu.
+# Uso:  python prove/fotografa_fasi.py cartella_uscita [--confronta cartella_riferimento] [--fasi 1,2]
+#                                      [--modello 130m] [--gpu]
 import argparse
 import itertools
 import json
@@ -12,7 +14,31 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fasi import carica_fasi
-from prove.riesegui_fasi_1_2 import contesto, uguali
+from nucleo.confronto import CONTROLLO
+from nucleo.modelli import carica_e_verifica, cartella_cache_predefinita, trova_modelli
+from nucleo.risultato import Contesto
+from nucleo.testo import TESTO_ESEMPIO, prepara
+
+
+def contesto(nome, dispositivo):
+    modello = next(m for m in trova_modelli(cartella_cache_predefinita()) if m.is_mamba and nome in m.nome)
+    model, tok, info, controlli = carica_e_verifica(modello, dispositivo)
+    if model is None:
+        raise SystemExit(f"Caricamento fallito: {controlli[-1]}")
+    ids, token, testo, _ = prepara(tok, TESTO_ESEMPIO, dispositivo)
+    return Contesto(model=model, tok=tok, info_modello=info, dispositivo=dispositivo, nome_dispositivo=dispositivo,
+                    ids=ids, token=token, testo=testo, fonte_testo="testo di esempio")
+
+
+def uguali(x, y):
+    if isinstance(x, float) and isinstance(y, float) and math.isnan(x) and math.isnan(y):
+        return True
+    return x == y
+
+
+# Le scelte del menu più, per il parametro "Confronto", il controllo FP32 contro FP32
+def scelte(parametro):
+    return parametro.scelte + ([CONTROLLO] if parametro.chiave == "confronto" else [])
 
 
 # NaN e infiniti come stringhe, per un JSON valido
@@ -53,6 +79,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("uscita")
     p.add_argument("--confronta")
+    p.add_argument("--fasi", help="codici separati da virgole (predefinito: tutte)")
     p.add_argument("--modello", default="130m")
     p.add_argument("--gpu", action="store_true")
     arg = p.parse_args()
@@ -67,9 +94,11 @@ def main():
     print(f"{ctx.info_modello['nome']} su {dispositivo}, {ctx.n_token} token")
 
     diverse = 0
+    if arg.fasi:
+        fasi = [f for f in fasi if f.codice in arg.fasi.split(",")]
     for fase in fasi:
-        for scelte in itertools.product(*[q.scelte for q in fase.parametri]):
-            ctx.parametri = {q.chiave: v for q, v in zip(fase.parametri, scelte)}
+        for combinazione in itertools.product(*[scelte(q) for q in fase.parametri]):
+            ctx.parametri = {q.chiave: v for q, v in zip(fase.parametri, combinazione)}
             dati = fotografia(fase.esegui(ctx))
             nome = nome_file(fase, ctx.parametri)
             with open(os.path.join(arg.uscita, nome), "w", encoding="utf-8") as f:
