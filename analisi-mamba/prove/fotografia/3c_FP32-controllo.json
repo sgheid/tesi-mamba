@@ -1,0 +1,345 @@
+{
+ "titolo": "Fase 3c - Poli discreti e margini con i pesi in FP32 (controllo)",
+ "note_formato": "pesi in FP32 (controllo), ricorrenza in FP32; abar in FP32, margini in FP64",
+ "righe": [
+  {
+   "strato": 0,
+   "su_1_base": 7706,
+   "su_1_rid": 7706,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 1,
+   "su_1_base": 39,
+   "su_1_rid": 39,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 2,
+   "su_1_base": 152,
+   "su_1_rid": 152,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 3,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 4,
+   "su_1_base": 430,
+   "su_1_rid": 430,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 5,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 6,
+   "su_1_base": 652,
+   "su_1_rid": 652,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 7,
+   "su_1_base": 202,
+   "su_1_rid": 202,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 8,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 9,
+   "su_1_base": 5,
+   "su_1_rid": 5,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 10,
+   "su_1_base": 28,
+   "su_1_rid": 28,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 11,
+   "su_1_base": 274,
+   "su_1_rid": 274,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 12,
+   "su_1_base": 1291,
+   "su_1_rid": 1291,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 13,
+   "su_1_base": 40,
+   "su_1_rid": 40,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 14,
+   "su_1_base": 207,
+   "su_1_rid": 207,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 15,
+   "su_1_base": 3953,
+   "su_1_rid": 3953,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 16,
+   "su_1_base": 10099,
+   "su_1_rid": 10099,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 17,
+   "su_1_base": 25018,
+   "su_1_rid": 25018,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 18,
+   "su_1_base": 824,
+   "su_1_rid": 824,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 19,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 20,
+   "su_1_base": 24,
+   "su_1_rid": 24,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 21,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 22,
+   "su_1_base": 14,
+   "su_1_rid": 14,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  },
+  {
+   "strato": 23,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0,
+   "totale": 5185536
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "FP32 (controllo)",
+   "nota": "controllo: seconda copia in FP32, gli errori devono essere nulli · modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Poli discreti confrontati",
+   "valore": "124 452 864",
+   "nota": "211 token × 1536 canali × 16 stati × 24 strati",
+   "stato": null
+  },
+  {
+   "etichetta": "Poli su 1, FP32 → formato ridotto",
+   "valore": "50 958 → 50 958",
+   "nota": "0.0409 % → 0.0409 % dei poli",
+   "stato": null
+  },
+  {
+   "etichetta": "Poli diventati 1 (nuovi)",
+   "valore": "0",
+   "nota": "per Δ = 0: 0 · per margine sotto 2⁻²⁵: 0",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Poli non più su 1 (persi)",
+   "valore": "0",
+   "nota": "su 1 in FP32, sotto 1 nel formato ridotto",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Errore tipico sul margine 1 − ā",
+   "valore": "0.00e+00",
+   "nota": "mediana su tutti i poli, risoluzione di un centesimo di decade",
+   "stato": null
+  },
+  {
+   "etichetta": "Poli non finiti (inf/NaN)",
+   "valore": "0",
+   "nota": "nessun overflow",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Controllo FP32",
+   "valore": "superato",
+   "nota": "due passaggi in FP32 devono dare gli stessi poli",
+   "stato": "ok"
+  }
+ ],
+ "evidenzia": {}
+}

@@ -1,0 +1,341 @@
+{
+ "titolo": "Fase 3c - Poli discreti e margini con i pesi in FP16",
+ "note_formato": "pesi in FP16, ricorrenza in FP32; abar in FP32, margini in FP64",
+ "righe": [
+  {
+   "strato": 0,
+   "su_1_base": 7706,
+   "su_1_rid": 20383,
+   "nuovi_zero": 12620,
+   "nuovi_soglia": 57,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 12677,
+   "err_mediana": 9.225714271547629e-05,
+   "totale": 5185536
+  },
+  {
+   "strato": 1,
+   "su_1_base": 39,
+   "su_1_rid": 720,
+   "nuovi_zero": 681,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 681,
+   "err_mediana": 7.673614893618186e-05,
+   "totale": 5185536
+  },
+  {
+   "strato": 2,
+   "su_1_base": 152,
+   "su_1_rid": 3376,
+   "nuovi_zero": 3224,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 3224,
+   "err_mediana": 7.161434102129028e-05,
+   "totale": 5185536
+  },
+  {
+   "strato": 3,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.00021627185237270245,
+   "totale": 5185536
+  },
+  {
+   "strato": 4,
+   "su_1_base": 430,
+   "su_1_rid": 3376,
+   "nuovi_zero": 2946,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 2946,
+   "err_mediana": 0.00016788040181225588,
+   "totale": 5185536
+  },
+  {
+   "strato": 5,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.00021134890398366433,
+   "totale": 5185536
+  },
+  {
+   "strato": 6,
+   "su_1_base": 652,
+   "su_1_rid": 2880,
+   "nuovi_zero": 2228,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 2228,
+   "err_mediana": 0.00017179083871575858,
+   "totale": 5185536
+  },
+  {
+   "strato": 7,
+   "su_1_base": 202,
+   "su_1_rid": 202,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.0003054921113215509,
+   "totale": 5185536
+  },
+  {
+   "strato": 8,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.00026001595631652775,
+   "totale": 5185536
+  },
+  {
+   "strato": 9,
+   "su_1_base": 5,
+   "su_1_rid": 5,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 0.00033496543915782794,
+   "totale": 5185536
+  },
+  {
+   "strato": 10,
+   "su_1_base": 28,
+   "su_1_rid": 54,
+   "nuovi_zero": 29,
+   "nuovi_soglia": 1,
+   "persi": 4,
+   "non_finiti": 0,
+   "nuovi": 30,
+   "err_mediana": 0.0004954501908047905,
+   "totale": 5185536
+  },
+  {
+   "strato": 11,
+   "su_1_base": 274,
+   "su_1_rid": 4165,
+   "nuovi_zero": 3931,
+   "nuovi_soglia": 0,
+   "persi": 40,
+   "non_finiti": 0,
+   "nuovi": 3931,
+   "err_mediana": 0.0005432503314924325,
+   "totale": 5185536
+  },
+  {
+   "strato": 12,
+   "su_1_base": 1291,
+   "su_1_rid": 11400,
+   "nuovi_zero": 10110,
+   "nuovi_soglia": 0,
+   "persi": 1,
+   "non_finiti": 0,
+   "nuovi": 10110,
+   "err_mediana": 0.0010839269140212038,
+   "totale": 5185536
+  },
+  {
+   "strato": 13,
+   "su_1_base": 40,
+   "su_1_rid": 166,
+   "nuovi_zero": 123,
+   "nuovi_soglia": 4,
+   "persi": 1,
+   "non_finiti": 0,
+   "nuovi": 127,
+   "err_mediana": 0.0005069907082747044,
+   "totale": 5185536
+  },
+  {
+   "strato": 14,
+   "su_1_base": 207,
+   "su_1_rid": 286,
+   "nuovi_zero": 79,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 79,
+   "err_mediana": 0.0008222426499470729,
+   "totale": 5185536
+  },
+  {
+   "strato": 15,
+   "su_1_base": 3953,
+   "su_1_rid": 12097,
+   "nuovi_zero": 8116,
+   "nuovi_soglia": 99,
+   "persi": 71,
+   "non_finiti": 0,
+   "nuovi": 8215,
+   "err_mediana": 0.0005069907082747044,
+   "totale": 5185536
+  },
+  {
+   "strato": 16,
+   "su_1_base": 10099,
+   "su_1_rid": 26788,
+   "nuovi_zero": 16699,
+   "nuovi_soglia": 2,
+   "persi": 12,
+   "non_finiti": 0,
+   "nuovi": 16701,
+   "err_mediana": 0.0018407720014689583,
+   "totale": 5185536
+  },
+  {
+   "strato": 17,
+   "su_1_base": 25018,
+   "su_1_rid": 91628,
+   "nuovi_zero": 68074,
+   "nuovi_soglia": 79,
+   "persi": 1543,
+   "non_finiti": 0,
+   "nuovi": 68153,
+   "err_mediana": 0.002540972705549301,
+   "totale": 5185536
+  },
+  {
+   "strato": 18,
+   "su_1_base": 824,
+   "su_1_rid": 3403,
+   "nuovi_zero": 2581,
+   "nuovi_soglia": 0,
+   "persi": 2,
+   "non_finiti": 0,
+   "nuovi": 2581,
+   "err_mediana": 0.0005069907082747044,
+   "totale": 5185536
+  },
+  {
+   "strato": 19,
+   "su_1_base": 0,
+   "su_1_rid": 48,
+   "nuovi_zero": 48,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 48,
+   "err_mediana": 0.0007673614893618186,
+   "totale": 5185536
+  },
+  {
+   "strato": 20,
+   "su_1_base": 24,
+   "su_1_rid": 465,
+   "nuovi_zero": 446,
+   "nuovi_soglia": 1,
+   "persi": 6,
+   "non_finiti": 0,
+   "nuovi": 447,
+   "err_mediana": 0.001333521432163324,
+   "totale": 5185536
+  },
+  {
+   "strato": 21,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 6.531305526474729e-05,
+   "totale": 5185536
+  },
+  {
+   "strato": 22,
+   "su_1_base": 14,
+   "su_1_rid": 15,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 1,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 1,
+   "err_mediana": 1.9724227361148534e-05,
+   "totale": 5185536
+  },
+  {
+   "strato": 23,
+   "su_1_base": 0,
+   "su_1_rid": 0,
+   "nuovi_zero": 0,
+   "nuovi_soglia": 0,
+   "persi": 0,
+   "non_finiti": 0,
+   "nuovi": 0,
+   "err_mediana": 2.264644307593062e-05,
+   "totale": 5185536
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "FP16",
+   "nota": "modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Poli discreti confrontati",
+   "valore": "124 452 864",
+   "nota": "211 token × 1536 canali × 16 stati × 24 strati",
+   "stato": null
+  },
+  {
+   "etichetta": "Poli su 1, FP32 → formato ridotto",
+   "valore": "50 958 → 181 457",
+   "nota": "0.0409 % → 0.146 % dei poli",
+   "stato": null
+  },
+  {
+   "etichetta": "Poli diventati 1 (nuovi)",
+   "valore": "132 179",
+   "nota": "per Δ = 0: 131 935 · per margine sotto 2⁻²⁵: 244",
+   "stato": "attenzione"
+  },
+  {
+   "etichetta": "Poli non più su 1 (persi)",
+   "valore": "1 680",
+   "nota": "su 1 in FP32, sotto 1 nel formato ridotto",
+   "stato": "attenzione"
+  },
+  {
+   "etichetta": "Errore tipico sul margine 1 − ā",
+   "valore": "3.51e-04",
+   "nota": "mediana su tutti i poli, risoluzione di un centesimo di decade",
+   "stato": null
+  },
+  {
+   "etichetta": "Poli non finiti (inf/NaN)",
+   "valore": "0",
+   "nota": "nessun overflow",
+   "stato": "ok"
+  }
+ ],
+ "evidenzia": {
+  "17": "più poli nuovi su 1 · più poli persi"
+ }
+}

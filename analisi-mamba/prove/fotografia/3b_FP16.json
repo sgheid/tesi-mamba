@@ -1,0 +1,335 @@
+{
+ "titolo": "Fase 3b - Passo Delta con i pesi in FP16",
+ "note_formato": "pesi in FP16, ricorrenza in FP32; baseline FP32",
+ "righe": [
+  {
+   "strato": 0,
+   "err_mediana": 0.0004682472790591419,
+   "err_p99": 0.004445948638021946,
+   "err_max": 1.0122032165527344,
+   "zeri": 1267,
+   "zeri_attesi": 1267,
+   "d_min_base": 1.2049830022675678e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 1,
+   "err_mediana": 0.0008134067174978554,
+   "err_p99": 0.005019110161811113,
+   "err_max": 1.0,
+   "zeri": 45,
+   "zeri_attesi": 45,
+   "d_min_base": 1.5260162911090447e-08,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 2,
+   "err_mediana": 0.0008739297045394778,
+   "err_p99": 0.005463996436446905,
+   "err_max": 1.0,
+   "zeri": 211,
+   "zeri_attesi": 211,
+   "d_min_base": 1.5330784419731458e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 3,
+   "err_mediana": 0.0007665891316719353,
+   "err_p99": 0.004535573069006205,
+   "err_max": 0.05606232210993767,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 3.78868094230711e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 4,
+   "err_mediana": 0.0006096199504099786,
+   "err_p99": 0.002813516417518258,
+   "err_max": 1.0,
+   "zeri": 211,
+   "zeri_attesi": 211,
+   "d_min_base": 9.100274311890644e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 5,
+   "err_mediana": 0.000669196539092809,
+   "err_p99": 0.0032565323635935783,
+   "err_max": 0.11534886807203293,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.84791460355882e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 6,
+   "err_mediana": 0.0006149979890324175,
+   "err_p99": 0.0031709105242043734,
+   "err_max": 1.0,
+   "zeri": 180,
+   "zeri_attesi": 180,
+   "d_min_base": 6.445996514337082e-10,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 7,
+   "err_mediana": 0.0006819250411354005,
+   "err_p99": 0.0036043310537934303,
+   "err_max": 0.04804728180170059,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 3.756781836727896e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 8,
+   "err_mediana": 0.0006599893677048385,
+   "err_p99": 0.0037470872048288584,
+   "err_max": 0.04118965193629265,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.2093472889773693e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 9,
+   "err_mediana": 0.000718893832527101,
+   "err_p99": 0.003937731962651014,
+   "err_max": 0.1382710337638855,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.6313745732077223e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 10,
+   "err_mediana": 0.0008166545885615051,
+   "err_p99": 0.004262798000127077,
+   "err_max": 1.0,
+   "zeri": 3,
+   "zeri_attesi": 3,
+   "d_min_base": 2.4668307396780165e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 11,
+   "err_mediana": 0.0009094236884266138,
+   "err_p99": 0.005869124084711075,
+   "err_max": 1.016867995262146,
+   "zeri": 260,
+   "zeri_attesi": 260,
+   "d_min_base": 1.1208120653805054e-08,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 12,
+   "err_mediana": 0.0014581893337890506,
+   "err_p99": 0.009953896515071392,
+   "err_max": 1.0203214883804321,
+   "zeri": 699,
+   "zeri_attesi": 699,
+   "d_min_base": 4.155217281365253e-10,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 13,
+   "err_mediana": 0.0008533842046745121,
+   "err_p99": 0.004921192303299904,
+   "err_max": 1.0,
+   "zeri": 8,
+   "zeri_attesi": 8,
+   "d_min_base": 6.795657370162189e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 14,
+   "err_mediana": 0.001123049994930625,
+   "err_p99": 0.005472515244036913,
+   "err_max": 1.0,
+   "zeri": 5,
+   "zeri_attesi": 5,
+   "d_min_base": 9.39430755408921e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 15,
+   "err_mediana": 0.0013118191855028272,
+   "err_p99": 0.00985441729426384,
+   "err_max": 1.0,
+   "zeri": 708,
+   "zeri_attesi": 708,
+   "d_min_base": 5.912640932415059e-10,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 16,
+   "err_mediana": 0.0019639055244624615,
+   "err_p99": 0.10074110329151154,
+   "err_max": 1.012249231338501,
+   "zeri": 1667,
+   "zeri_attesi": 1667,
+   "d_min_base": 1.961316742696284e-12,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 17,
+   "err_mediana": 0.0025902600027620792,
+   "err_p99": 1.0,
+   "err_max": 1.0186882019042969,
+   "zeri": 5505,
+   "zeri_attesi": 5505,
+   "d_min_base": 2.8242421422353114e-12,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 18,
+   "err_mediana": 0.0009142511989921331,
+   "err_p99": 0.004987419117242098,
+   "err_max": 1.0,
+   "zeri": 212,
+   "zeri_attesi": 212,
+   "d_min_base": 2.381981056842619e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 19,
+   "err_mediana": 0.0014027897268533707,
+   "err_p99": 0.007045741192996502,
+   "err_max": 1.0,
+   "zeri": 3,
+   "zeri_attesi": 3,
+   "d_min_base": 1.4024628569586639e-08,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 20,
+   "err_mediana": 0.001744298031553626,
+   "err_p99": 0.010919686406850815,
+   "err_max": 1.013819694519043,
+   "zeri": 28,
+   "zeri_attesi": 28,
+   "d_min_base": 4.333983394388952e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 21,
+   "err_mediana": 0.000416480383137241,
+   "err_p99": 0.002835377585142851,
+   "err_max": 0.046530336141586304,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 5.001073191124306e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 22,
+   "err_mediana": 0.0003353161155246198,
+   "err_p99": 0.0025582003872841597,
+   "err_max": 0.09783008694648743,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 5.814954207039591e-08,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 23,
+   "err_mediana": 0.000400982447899878,
+   "err_p99": 0.001992652425542474,
+   "err_max": 0.02764316275715828,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.2872820889242576e-06,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "FP16",
+   "nota": "modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Valori di Δ confrontati",
+   "valore": "7 778 304",
+   "nota": "211 token × 1536 canali × 24 strati",
+   "stato": null
+  },
+  {
+   "etichetta": "Errore tipico su Δ, da / a",
+   "valore": "3.35e-04 / 2.59e-03",
+   "nota": "mediana per strato: la più bassa nello strato 22, la più alta nello strato 17 (strato 0: 4.68e-04, ultimo: 4.01e-04)",
+   "stato": null
+  },
+  {
+   "etichetta": "Errore al 99° percentile più alto",
+   "valore": "1.00e+00",
+   "nota": "strato 17: l'1% dei Δ sbaglia di più",
+   "stato": null
+  },
+  {
+   "etichetta": "Δ diventati 0",
+   "valore": "11 012",
+   "nota": "0.142 % dei Δ; 11 012 avevano già in FP32 Δ < 2⁻²⁵",
+   "stato": "attenzione"
+  },
+  {
+   "etichetta": "Valori non finiti (inf/NaN)",
+   "valore": "0",
+   "nota": "nessun overflow",
+   "stato": "ok"
+  }
+ ],
+ "evidenzia": {
+  "17": "P99 più alto"
+ }
+}

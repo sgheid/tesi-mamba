@@ -1,0 +1,258 @@
+{
+ "titolo": "Fase 1 - Poli continui  a = -exp(A_log)",
+ "note_formato": "FP32",
+ "righe": [
+  {
+   "strato": 0,
+   "a_min": -291143.5,
+   "a_mediana": -10.519086837768555,
+   "a_max": -0.0009113620617426932,
+   "tau": 1097.2587536591273,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 1,
+   "a_min": -102857.8671875,
+   "a_mediana": -23.53891944885254,
+   "a_max": -0.0441620908677578,
+   "tau": 22.643855405181636,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 2,
+   "a_min": -306338.59375,
+   "a_mediana": -70.26069641113281,
+   "a_max": -0.02435842715203762,
+   "tau": 41.05355381767121,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 3,
+   "a_min": -317679.84375,
+   "a_mediana": -22.03280258178711,
+   "a_max": -0.026410801336169243,
+   "tau": 37.8632964320743,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 4,
+   "a_min": -150201.9375,
+   "a_mediana": -11.158897399902344,
+   "a_max": -0.028899870812892914,
+   "tau": 34.60223080145661,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 5,
+   "a_min": -617145.4375,
+   "a_mediana": -9.321645736694336,
+   "a_max": -0.025080062448978424,
+   "tau": 39.87230901176375,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 6,
+   "a_min": -57305.01171875,
+   "a_mediana": -8.873871803283691,
+   "a_max": -0.0521889291703701,
+   "tau": 19.161151912803433,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 7,
+   "a_min": -206710.921875,
+   "a_mediana": -9.165421485900879,
+   "a_max": -2.13472890209232e-06,
+   "tau": 468443.5569405868,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 8,
+   "a_min": -1082982.5,
+   "a_mediana": -7.748489856719971,
+   "a_max": -0.03649018704891205,
+   "tau": 27.404627952703656,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 9,
+   "a_min": -1182414.875,
+   "a_mediana": -8.042281150817871,
+   "a_max": -0.011387301608920097,
+   "tau": 87.8171172015557,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 10,
+   "a_min": -277526.9375,
+   "a_mediana": -6.023411750793457,
+   "a_max": -0.02610541507601738,
+   "tau": 38.3062286919423,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 11,
+   "a_min": -701917.875,
+   "a_mediana": -7.367619514465332,
+   "a_max": -0.017884619534015656,
+   "tau": 55.91396552205373,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 12,
+   "a_min": -963117.0625,
+   "a_mediana": -11.069123268127441,
+   "a_max": -0.00022994940809439868,
+   "tau": 4348.78266609619,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 13,
+   "a_min": -424066.4375,
+   "a_mediana": -7.237371444702148,
+   "a_max": -0.00021340939565561712,
+   "tau": 4685.829304412255,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 14,
+   "a_min": -1516690.75,
+   "a_mediana": -11.92062759399414,
+   "a_max": -2.9605418603750877e-05,
+   "tau": 33777.60042458256,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 15,
+   "a_min": -1040507.25,
+   "a_mediana": -192.08151245117188,
+   "a_max": -7.612133777001873e-05,
+   "tau": 13136.920990816607,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 16,
+   "a_min": -283589248.0,
+   "a_mediana": -7.4135260581970215,
+   "a_max": -0.025167714804410934,
+   "tau": 39.73344452491723,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 17,
+   "a_min": -6268393.0,
+   "a_mediana": -2.5259695053100586,
+   "a_max": -0.0002507235330995172,
+   "tau": 3988.4568777318555,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 18,
+   "a_min": -395125.65625,
+   "a_mediana": -12.48024845123291,
+   "a_max": -0.018013805150985718,
+   "tau": 55.51297971851771,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 19,
+   "a_min": -2234868.25,
+   "a_mediana": -82.46221160888672,
+   "a_max": -0.18715885281562805,
+   "tau": 5.3430547631380785,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 20,
+   "a_min": -6136426.5,
+   "a_mediana": -70.63066864013672,
+   "a_max": -0.027071282267570496,
+   "tau": 36.939513618752,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 21,
+   "a_min": -278687.8125,
+   "a_mediana": -6.519834995269775,
+   "a_max": -0.025982731953263283,
+   "tau": 38.48709988613825,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 22,
+   "a_min": -455331.03125,
+   "a_mediana": -9.861239433288574,
+   "a_max": -0.019568193703889847,
+   "tau": 51.10333713638658,
+   "instabili": 0,
+   "totale": 24576
+  },
+  {
+   "strato": 23,
+   "a_min": -2016189.375,
+   "a_mediana": -13.22627067565918,
+   "a_max": -0.0034583669621497393,
+   "tau": 289.15381477574454,
+   "instabili": 0,
+   "totale": 24576
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Poli continui esaminati",
+   "valore": "589 824",
+   "nota": "24 strati × 1536 canali × 16 stati",
+   "stato": null
+  },
+  {
+   "etichetta": "Poli instabili (a ≥ 0)",
+   "valore": "0",
+   "nota": "tutti i modi sono asintoticamente stabili",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Polo più lento",
+   "valore": "-2.13e-06",
+   "nota": "strato 7, τ = 4.68e+05",
+   "stato": null
+  },
+  {
+   "etichetta": "Polo più veloce",
+   "valore": "-2.84e+08",
+   "nota": "strato 16",
+   "stato": null
+  },
+  {
+   "etichetta": "Ampiezza dello spettro",
+   "valore": "14.1 decadi",
+   "nota": "all'inizializzazione: 1.2 decadi (da −1 a −16)",
+   "stato": null
+  }
+ ],
+ "evidenzia": {
+  "7": "polo più lento",
+  "16": "polo più veloce"
+ }
+}

@@ -1,0 +1,341 @@
+{
+ "titolo": "Fase 3b - Passo Delta con i pesi in FP32 (controllo)",
+ "note_formato": "pesi in FP32 (controllo), ricorrenza in FP32; baseline FP32",
+ "righe": [
+  {
+   "strato": 0,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.2049830022675678e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 1,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.5260162911090447e-08,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 2,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.5330784419731458e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 3,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 3.78868094230711e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 4,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 9.100274311890644e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 5,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.84791460355882e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 6,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 6.445996514337082e-10,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 7,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 3.756781836727896e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 8,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.2093472889773693e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 9,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.6313745732077223e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 10,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 2.4668307396780165e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 11,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.1208120653805054e-08,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 12,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 4.155217281365253e-10,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 13,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 6.795657370162189e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 14,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 9.39430755408921e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 15,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 5.912640932415059e-10,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 16,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.961316742696284e-12,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 17,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 2.8242421422353114e-12,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 18,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 2.381981056842619e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 19,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.4024628569586639e-08,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 20,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 4.333983394388952e-09,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 21,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 5.001073191124306e-07,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 22,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 5.814954207039591e-08,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  },
+  {
+   "strato": 23,
+   "err_mediana": 0.0,
+   "err_p99": 0.0,
+   "err_max": 0.0,
+   "zeri": 0,
+   "zeri_attesi": 0,
+   "d_min_base": 1.2872820889242576e-06,
+   "non_finiti": 0,
+   "non_finiti_ingresso": 0,
+   "valori": 324096
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "FP32 (controllo)",
+   "nota": "controllo: seconda copia in FP32, gli errori devono essere nulli · modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Valori di Δ confrontati",
+   "valore": "7 778 304",
+   "nota": "211 token × 1536 canali × 24 strati",
+   "stato": null
+  },
+  {
+   "etichetta": "Errore tipico su Δ, da / a",
+   "valore": "0.00e+00 / 0.00e+00",
+   "nota": "nessuna differenza in nessuno strato",
+   "stato": null
+  },
+  {
+   "etichetta": "Errore al 99° percentile più alto",
+   "valore": "0.00e+00",
+   "nota": "strato 0: l'1% dei Δ sbaglia di più",
+   "stato": null
+  },
+  {
+   "etichetta": "Δ diventati 0",
+   "valore": "0",
+   "nota": "nessun token escluso dallo stato",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Valori non finiti (inf/NaN)",
+   "valore": "0",
+   "nota": "nessun overflow",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Controllo FP32",
+   "valore": "superato",
+   "nota": "due passaggi in FP32 devono dare Δ identici",
+   "stato": "ok"
+  }
+ ],
+ "evidenzia": {
+  "0": "P99 più alto"
+ }
+}
