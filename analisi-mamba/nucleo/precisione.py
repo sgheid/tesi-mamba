@@ -1,4 +1,5 @@
 import glob
+import hashlib
 import os
 import sys
 from contextlib import contextmanager
@@ -139,6 +140,46 @@ def esegui_in_formato(ctx, tipo, crea_hook):
     with copia_in_formato(ctx, tipo) as (copia, esito):
         esegui_con_sonde(copia, ctx.ids, crea_hook)
     return esito
+
+
+# Passaggio nella copia a bassa precisione, condiviso dalle Fasi 2 e 3: una sola volta per modello, testo e formato.
+# Per ogni strato tiene su CPU il Delta della copia nel suo formato, l'A_log della copia e i valori non finiti
+# all'ingresso di x_proj; le fasi li elaborano dopo, a copia già liberata. Col 1.4B e 1024 token sono circa
+# 400 MB per formato; la cache si svuota quando cambiano modello o testo.
+_CACHE = {}
+
+
+def svuota_cache():
+    _CACHE.clear()
+    libera()
+
+
+def _chiave_cache(ctx, nome):
+    impronta_testo = hashlib.sha1(ctx.ids.cpu().numpy().tobytes()).hexdigest()
+    return ctx.info_modello["percorso"], ctx.info_modello["commit"], ctx.dispositivo, impronta_testo, nome
+
+
+def passaggio_ridotto(ctx, nome, avanzamento=lambda frazione, messaggio="": None):
+    chiave = _chiave_cache(ctx, nome)
+    if chiave in _CACHE:
+        avanzamento(1.0, f"riuso il passaggio in {nome} già fatto su questo testo")
+        return _CACHE[chiave]
+    if any(k[:4] != chiave[:4] for k in _CACHE):
+        svuota_cache()
+    n = len(ctx.model.backbone.layers)
+    strati = {}
+
+    def crea_hook(i, mixer):
+        def hook(modulo, ingresso, uscita):
+            strati[i] = dict(delta=delta_modello(mixer, uscita).cpu(), A_log=mixer.A_log.detach().cpu(),
+                             non_finiti_ingresso=int((~torch.isfinite(ingresso[0])).sum().item()))
+            avanzamento((i + 1) / n, f"{nome}, strato {i + 1} di {n}")
+        return hook
+
+    avanzamento(0.0, f"carico la copia in {nome}")
+    esito = esegui_in_formato(ctx, FORMATI[nome], crea_hook)
+    _CACHE[chiave] = dict(strati=[strati[i] for i in range(n)], esito=esito)
+    return _CACHE[chiave]
 
 
 def indicatore_formato(nome, dispositivo, esito):

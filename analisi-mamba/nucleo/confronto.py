@@ -31,7 +31,7 @@ def _segno(x):
 
 
 def differenza(v32, vr):
-    if v32 is None or vr is None:
+    if not all(isinstance(v, (int, float)) for v in (v32, vr)):
         return ""
     if v32 == vr:
         return "nessuna differenza"
