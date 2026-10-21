@@ -13,6 +13,7 @@ from nucleo import grafica as g
 from nucleo.excel import crea_excel, nome_file, salva_excel
 from nucleo.formato import FORMATI, fmt_int
 from nucleo.modelli import carica_e_verifica, cartella_cache_predefinita, dispositivi_disponibili, libera, trova_modelli
+from nucleo.precisione import svuota_cache
 from nucleo.risultato import Contesto
 from nucleo.testo import MAX_TOKEN_PREDEFINITO, TESTO_ESEMPIO, prepara
 
@@ -267,12 +268,15 @@ def carica_modello(modello, dispositivo):
         st.session_state.update(model=None, tok=None, info=None)
         libera()
     svuota_risultati()
+    svuota_cache()
     with st.spinner(f"Carico e verifico {modello.nome}..."):
         model, tok, info, controlli = carica_e_verifica(modello, dispositivo)
     st.session_state.update(model=model, tok=tok, info=info, controlli=controlli, dispositivo=dispositivo)
 
 
+# Un testo nuovo rende inutili i passaggi a bassa precisione in cache (Fasi 2 e 3)
 def imposta_testo(grezzo, fonte, max_token):
+    svuota_cache()
     ids, token, testo, n_originali = prepara(st.session_state.tok, grezzo, st.session_state.dispositivo, max_token)
     st.session_state.testo = dict(grezzo=grezzo, fonte=fonte, max_token=max_token, ids=ids, token=token,
                                   testo=testo, n_originali=n_originali)
@@ -555,10 +559,11 @@ PASSI = [("01", "Carica il modello", "Scegli un modello Mamba-1 dalla cartella d
           "<b>in FP32</b> su GPU o CPU e verificato: architettura, tokenizer, presenza di A_log, x_proj e dt_proj, "
           "valori finiti e una prova di lettura."),
          ("02", "Scegli il testo", "Testo di prova, incollato o da file .txt, diviso in token fino al limite che imposti. "
-          "Le fasi <b>2a, 2b, 3b e 3c</b> lo fanno leggere al modello per misurare il passo Δ, che dipende "
-          "dall'input; <b>1 e 3a</b> usano solo i pesi."),
-         ("03", "Leggi i risultati", "Tutte le fasi girano in fila, in ogni variante (<b>FP32, FP16, BF16</b>), con una "
-          "sola barra. Poi scegli fase e formato da un menu: riquadri riassuntivi, grafici e tabella per strato. "
+          "Le fasi <b>2 (Δ) e 3 (margini)</b> lo fanno leggere al modello per misurare il passo Δ, che dipende "
+          "dall'input; la <b>1 (poli continui)</b> usa solo i pesi."),
+         ("03", "Leggi i risultati", "Ogni fase gira <b>solo in FP32</b> e <b>a confronto con FP16 e BF16</b>, con una "
+          "sola barra; Fasi 2 e 3 condividono la copia a bassa precisione. Poi scegli fase e confronto da un menu: "
+          "riquadri, grafici FP32 in blu e formato ridotto in arancione, tabella per strato. "
           "L'Excel si salva <b>solo se lo chiedi</b>.")]
 
 
