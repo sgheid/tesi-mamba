@@ -22,7 +22,9 @@ SINISTRA = Alignment(horizontal="left", vertical="top", wrap_text=True)
 def nome_file(ris):
     data = ris.info.get("data", datetime.now())
     nome = ris.info.get("modello", "modello").split("/")[-1].split(" @ ")[0]
-    return f"{data:%Y%m%d_%H%M%S}_{nome}_Fase{ris.codice}.xlsx"
+    # I parametri nel nome (es. _FP16): esecuzioni della stessa fase nello stesso secondo non si sovrascrivono
+    parametri = "".join("_" + re.sub(r"\W+", "-", str(v)).strip("-") for v in ris.info.get("parametri", {}).values())
+    return f"{data:%Y%m%d_%H%M%S}_{nome}_Fase{ris.codice}{parametri}.xlsx"
 
 
 def _nome_foglio(testo, usati):

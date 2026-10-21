@@ -1,8 +1,9 @@
-import hashlib
 import html
+import itertools
 import math
 import os
 import time
+import traceback
 from datetime import datetime
 
 import streamlit as st
@@ -161,16 +162,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Stato della sessione
+# Stato della sessione: passo della procedura (modello → testo → risultati) e risultati in memoria
 DISPOSITIVI = dict(dispositivi_disponibili())
 PREDEFINITI = dict(cartella=cartella_cache_predefinita(), model=None, tok=None, info=None, controlli=[],
-                   dispositivo=next(iter(DISPOSITIVI)), testo=None, risultati={}, messaggio=None)
+                   dispositivo=next(iter(DISPOSITIVI)), testo=None, passo="modello",
+                   risultati={}, errori={}, esito_salvataggio=None, messaggio=None)
 for chiave, valore in PREDEFINITI.items():
     st.session_state.setdefault(chiave, valore)
 
-
-def impronta_testo(testo, max_token):
-    return hashlib.sha1(f"{max_token}|{testo}".encode("utf-8")).hexdigest()[:10]
+FONTI = ["Testo di prova", "Incolla un testo", "File .txt"]
 
 
 def html_sicuro(testo):
@@ -233,25 +233,109 @@ def sfoglia_cartella():
                                                  "Scrivi o incolla il percorso nella casella.")
 
 
+def svuota_risultati():
+    st.session_state.update(risultati={}, errori={}, esito_salvataggio=None)
+
+
+def vai(passo):
+    st.session_state.passo = passo
+
+
 def carica_modello(modello, dispositivo):
     if st.session_state.model is not None:
-        st.session_state.update(model=None, tok=None)
+        st.session_state.update(model=None, tok=None, info=None)
         libera()
+    svuota_risultati()
     with st.spinner(f"Carico e verifico {modello.nome}..."):
         model, tok, info, controlli = carica_e_verifica(modello, dispositivo)
     st.session_state.update(model=model, tok=tok, info=info, controlli=controlli, dispositivo=dispositivo)
-    t = st.session_state.testo
-    if model is not None and t is not None:
-        imposta_testo(t["grezzo"], t["fonte"], t["max_token"])
 
 
 def imposta_testo(grezzo, fonte, max_token):
     ids, token, testo, n_originali = prepara(st.session_state.tok, grezzo, st.session_state.dispositivo, max_token)
     st.session_state.testo = dict(grezzo=grezzo, fonte=fonte, max_token=max_token, ids=ids, token=token,
-                                  testo=testo, n_originali=n_originali, impronta=impronta_testo(testo, max_token))
+                                  testo=testo, n_originali=n_originali)
 
 
-# Barra laterale: marchio e tre schede ① modello, ② testo, ③ fase, ognuna con un chip di stato
+# Ogni fase con tutte le combinazioni dei suoi parametri (es. 3a in FP16, BF16 e FP32 controllo)
+def lavori(fasi):
+    elenco = []
+    for fase in fasi:
+        for scelte in itertools.product(*[p.scelte for p in fase.parametri]):
+            elenco.append((fase, {p.chiave: v for p, v in zip(fase.parametri, scelte)}))
+    return elenco
+
+
+def chiave(fase, parametri):
+    return fase.codice, tuple(sorted(parametri.items()))
+
+
+def descrivi_lavoro(fase, parametri):
+    return f"Fase {fase.codice}" + "".join(f" · {v}" for v in parametri.values())
+
+
+# Una fase: restituisce (risultato, None) oppure (None, (messaggio, dettaglio))
+def esegui_fase(fase, parametri, avanzamento):
+    info = st.session_state.info
+    nome_disp = DISPOSITIVI[st.session_state.dispositivo]
+    t = (st.session_state.testo if fase.usa_testo else None) or {}
+    ctx = Contesto(
+        model=st.session_state.model, tok=st.session_state.tok, info_modello=info,
+        dispositivo=st.session_state.dispositivo, nome_dispositivo=nome_disp,
+        ids=t.get("ids"), token=t.get("token", []), testo=t.get("testo"), fonte_testo=t.get("fonte"),
+        parametri=parametri, avanzamento=avanzamento)
+    t0 = time.time()
+    try:
+        ris = fase.esegui(ctx)
+    except Exception as e:
+        import torch
+        if isinstance(e, torch.cuda.OutOfMemoryError):
+            torch.cuda.empty_cache()
+            return None, ("Memoria della GPU esaurita: riduci i token massimi o usa un testo più corto.", "")
+        return None, (f"{type(e).__name__}: {e}", traceback.format_exc())
+    ris.info = dict(
+        modello=info["nome"], percorso=info["percorso"], commit=info["commit"],
+        struttura=f"{info['strati']} strati × {info['canali']} canali × {info['stati']} stati",
+        dispositivo=nome_disp, data=datetime.now(), durata=time.time() - t0, parametri=parametri,
+        testo=t.get("testo"), fonte_testo=t.get("fonte"),
+        n_token=int(t["ids"].shape[1]) if t else None)
+    return ris, None
+
+
+# Tutte le fasi in fila, con una sola barra di avanzamento; un errore non ferma le fasi successive
+def esegui_tutte(fasi):
+    svuota_risultati()
+    elenco = lavori(fasi)
+    barra = st.progress(0.0, text="Avvio delle fasi...")
+    for k, (fase, parametri) in enumerate(elenco):
+        etichetta = f"{descrivi_lavoro(fase, parametri)} ({k + 1} di {len(elenco)})"
+
+        def avanzamento(f, m="", k=k, etichetta=etichetta):
+            barra.progress(min(max((k + min(max(f, 0.0), 1.0)) / len(elenco), 0.0), 1.0),
+                           text=f"{etichetta}: {m}" if m else etichetta)
+
+        avanzamento(0.0)
+        ris, errore = esegui_fase(fase, parametri, avanzamento)
+        if ris is not None:
+            st.session_state.risultati[chiave(fase, parametri)] = ris
+        else:
+            st.session_state.errori[chiave(fase, parametri)] = errore
+    barra.empty()
+
+
+def salva(chiavi):
+    salvati, errori = [], []
+    for k in chiavi:
+        ris = st.session_state.risultati[k]
+        try:
+            ris.info["file"] = salva_excel(ris, CARTELLA_RISULTATI)
+            salvati.append(ris.info["file"])
+        except OSError as e:
+            errori.append(f"{os.path.basename(nome_file(ris))}: {e}")
+    st.session_state.esito_salvataggio = (salvati, errori)
+
+
+# Blocchi di presentazione
 def titolo_passo(segnaposto, numero, titolo, stato, tono):
     segnaposto.markdown(f"<div class='passo-testa'><span class='passo-num'>{numero}</span>"
                         f"<span class='passo-tit'>{titolo}</span><span class='chip {tono}'>{html_sicuro(stato)}</span></div>",
@@ -263,120 +347,6 @@ def riga_stato(titolo, sotto):
                 f"<div><b>{html_sicuro(titolo)}</b><br>{html_sicuro(sotto)}</div></div>")
 
 
-def sezione_modello():
-    testa = st.empty()
-    st.text_input("Cartella dei modelli", key="cartella",
-                  help="Predefinita: la cache di Hugging Face, dove from_pretrained salva i modelli "
-                       "scaricati. Va bene anche una cartella con config.json e i pesi.")
-    st.button("Sfoglia…", on_click=sfoglia_cartella, width="stretch")
-
-    trovati = trova_modelli(st.session_state.cartella)
-    solo_mamba = st.toggle("Mostra solo modelli Mamba-1", value=True)
-    elenco = [m for m in trovati if m.is_mamba] if solo_mamba else trovati
-    if not trovati:
-        st.caption("Nessun modello trovato in questa cartella.")
-    elif not elenco:
-        st.caption(f"{len(trovati)} modelli trovati, nessuno Mamba-1. Disattiva il filtro per vederli.")
-
-    scelto = None
-    if elenco:
-        scelto = st.selectbox("Modello", elenco,
-                              format_func=lambda m: m.nome if m.is_mamba else f"{m.nome} [{m.tipo}]")
-        st.caption(f"Pesi: {scelto.dimensione_gb:.2f} GB su disco · commit {scelto.commit}")
-    disp = st.radio("Esegui su", list(DISPOSITIVI), format_func=DISPOSITIVI.get, horizontal=True,
-                    index=list(DISPOSITIVI).index(st.session_state.dispositivo))
-    if scelto is not None and disp == "cpu" and scelto.dimensione_gb > 2:
-        st.caption(f"⚠ Modello grande su CPU: servono circa {scelto.dimensione_gb * 1.3:.1f} GB di RAM liberi.")
-    if st.button("Carica e verifica", type="primary", disabled=scelto is None, width="stretch"):
-        carica_modello(scelto, disp)
-
-    info = st.session_state.info
-    if info is not None:
-        riga_stato(info["nome"], f"caricato su {DISPOSITIVI[st.session_state.dispositivo]} · FP32")
-        titolo_passo(testa, 1, "Modello", "pronto", "ok")
-    elif st.session_state.controlli:
-        titolo_passo(testa, 1, "Modello", "errore", "errore")
-    else:
-        titolo_passo(testa, 1, "Modello", "da caricare", "attesa")
-
-
-def sezione_testo():
-    testa = st.empty()
-    if st.session_state.model is None:
-        titolo_passo(testa, 2, "Testo", "in attesa", "attesa")
-        st.caption("Carica prima un modello: il testo va tokenizzato con il suo tokenizer.")
-        return
-    fonte = st.radio("Fonte", ["Testo di esempio", "Incolla un testo", "File .txt"], label_visibility="collapsed")
-    grezzo = caricato = None
-    if fonte == "Testo di esempio":
-        st.caption("Breve testo sulla teoria del controllo (211 token): un riferimento fisso per confrontare "
-                   "esecuzioni diverse.")
-        grezzo = TESTO_ESEMPIO
-    elif fonte == "Incolla un testo":
-        grezzo = st.text_area("Testo", height=160, placeholder="Incolla qui il testo (in inglese, "
-                              "come i dati di addestramento di Mamba).", label_visibility="collapsed")
-    else:
-        caricato = st.file_uploader("File di testo", type=["txt", "md"], label_visibility="collapsed")
-        if caricato is not None:
-            grezzo = caricato.getvalue().decode("utf-8", errors="replace")
-    max_token = st.number_input("Token massimi", 16, 8192, MAX_TOKEN_PREDEFINITO, step=64,
-                                help="I testi più lunghi vengono troncati. Su una GPU da 8 GB con un modello "
-                                     "da circa 1.4B parametri, 1024 è un limite prudente.")
-    if st.button("Usa questo testo", disabled=not (grezzo and grezzo.strip()), width="stretch"):
-        nome_fonte = {"Testo di esempio": "testo di esempio", "Incolla un testo": "testo incollato"}.get(
-            fonte, f"file {getattr(caricato, 'name', '')}")
-        imposta_testo(grezzo.strip(), nome_fonte, int(max_token))
-    t = st.session_state.testo
-    if t is None:
-        titolo_passo(testa, 2, "Testo", "da scegliere", "attesa")
-        return
-    n = t["ids"].shape[1]
-    troncato = f", troncato da {t['n_originali']}" if t["n_originali"] > t["max_token"] else ""
-    riga_stato(f"{n} token in uso", f"{t['fonte']}{troncato}")
-    titolo_passo(testa, 2, "Testo", f"{n} token", "ok")
-
-
-def sezione_fase(fasi, errori_fasi):
-    testa = st.empty()
-    fase = None
-    if fasi:
-        fase = st.radio("Fase", fasi, label_visibility="collapsed",
-                        format_func=lambda f: f"Fase {f.codice} · {f.nome}", captions=[f.breve for f in fasi])
-    else:
-        st.error("Nessuna fase trovata nella cartella fasi/.")
-    for nome, errore in errori_fasi:
-        st.error(f"Errore nel file fasi/{nome}.py", icon="⚠️")
-        with st.expander("Dettagli"):
-            st.code(errore)
-    if st.button("Ricarica le fasi", help="Rilegge i file in fasi/ dopo averne aggiunto o modificato uno.",
-                 width="stretch"):
-        carica_fasi(ricarica=True)
-        st.rerun()
-    titolo_passo(testa, 3, "Fase", fase.codice if fase else "nessuna", "codice" if fase else "errore")
-    return fase
-
-
-fasi, errori_fasi = carica_fasi()
-with st.sidebar:
-    mostra_html(f"<div class='marchio'>{svg_marchio()}<div><div class='marchio-nome'>Mamba<span>·</span>Modi</div>"
-                f"<div class='marchio-sotto'>analisi di poli e stabilità</div></div></div>")
-    with st.container(key="passo_modello"):
-        sezione_modello()
-    with st.container(key="passo_testo"):
-        sezione_testo()
-    with st.container(key="passo_fase"):
-        fase = sezione_fase(fasi, errori_fasi)
-        salva_auto = st.toggle("Salva ogni risultato anche in risultati/", value=True,
-                               help=f"Cartella: {CARTELLA_RISULTATI}")
-    mostra_html("<div class='piede'>Elaborazione locale · nessuna connessione di rete</div>")
-
-if st.session_state.messaggio:
-    tipo, testo_msg = st.session_state.messaggio
-    getattr(st, tipo)(testo_msg)
-    st.session_state.messaggio = None
-
-
-# Pagina principale: blocchi di presentazione
 def hero(sopra, titolo, sotto):
     mostra_html(f"<div class='hero'><div><div class='sopra'>{html_sicuro(sopra)}</div>"
                 f"<div class='titolo'>{html_sicuro(titolo)}</div><div class='sotto'>{sotto}</div></div>"
@@ -448,28 +418,6 @@ def tabella(ris):
                 f"<tbody>{''.join(righe)}</tbody></table></div>")
 
 
-PASSI = [("01", "Scegli il modello", "Nella barra a sinistra, dalla cartella dei modelli scaricati. "
-          "Il programma lo carica in FP32 e controlla che sia analizzabile."),
-         ("02", "Scegli il testo", "Serve alle fasi che fanno leggere il modello (2a, 2b). La Fase 1 legge solo i pesi."),
-         ("03", "Esegui una fase", "Risultati in riquadri, grafici e tabella, con la guida alla lettura. "
-          "Ogni fase si può scaricare in Excel.")]
-
-
-def pagina_benvenuto():
-    hero("Analisi spettrale di modelli state-space", "Analisi dei modi di Mamba",
-         "Misura poli, passi di campionamento e margini di stabilità di un modello Mamba-1, strato per strato. "
-         "Tutto gira sul tuo PC, senza connessione.")
-    capacita = "".join(f"<span>{html_sicuro(f.nome)}</span>" for f in fasi) + "<span>Esportazione in Excel</span>"
-    mostra_html(f"<div class='capacita'>{capacita}</div>")
-    passi = "".join(f"<div class='passo'><div class='num'>{n}</div><div class='tit'>{t}</div>"
-                    f"<div class='desc'>{d}</div></div>" for n, t, d in PASSI)
-    mostra_html(f"<div class='passi'>{passi}</div>")
-    if st.session_state.controlli:
-        st.subheader("Esito dell'ultima verifica")
-        mostra_controlli(st.session_state.controlli)
-        st.error("Il modello non è stato caricato: vedi il controllo non superato qui sopra.")
-
-
 def intestazione_modello(info):
     hero("Modello caricato", info["nome"],
          f"{html_sicuro(DISPOSITIVI[st.session_state.dispositivo])} · FP32 · commit {html_sicuro(info['commit'])}")
@@ -484,58 +432,11 @@ def intestazione_modello(info):
         st.caption(f"Cartella: `{info['percorso']}` · commit {info['commit']} · rango di Δ: {info['rank_delta']}")
 
 
-# Esecuzione di una fase e memorizzazione del risultato (con salvataggio Excel opzionale)
-def chiave_esecuzione(fase, parametri):
-    t = st.session_state.testo
-    return (st.session_state.info["percorso"], st.session_state.dispositivo,
-            t["impronta"] if (fase.usa_testo and t) else None, tuple(sorted(parametri.items())))
-
-
-def esegui_fase(fase, parametri):
-    info = st.session_state.info
-    nome_disp = DISPOSITIVI[st.session_state.dispositivo]
-    t = (st.session_state.testo if fase.usa_testo else None) or {}
-    barra = st.progress(0.0, text=f"Fase {fase.codice} in corso...")
-    ctx = Contesto(
-        model=st.session_state.model, tok=st.session_state.tok, info_modello=info,
-        dispositivo=st.session_state.dispositivo, nome_dispositivo=nome_disp,
-        ids=t.get("ids"), token=t.get("token", []), testo=t.get("testo"), fonte_testo=t.get("fonte"),
-        parametri=parametri,
-        avanzamento=lambda f, m="": barra.progress(min(max(f, 0.0), 1.0), text=f"Fase {fase.codice}: {m}"))
-    t0 = time.time()
-    try:
-        ris = fase.esegui(ctx)
-    except Exception as e:
-        import torch
-        barra.empty()
-        if isinstance(e, torch.cuda.OutOfMemoryError):
-            torch.cuda.empty_cache()
-            st.error("Memoria della GPU esaurita: riduci i token massimi o usa un testo più corto.")
-        else:
-            st.error(f"Errore durante la fase: {type(e).__name__}: {e}")
-            st.exception(e)
-        return
-    barra.empty()
-    ris.info = dict(
-        modello=info["nome"], percorso=info["percorso"], commit=info["commit"],
-        struttura=f"{info['strati']} strati × {info['canali']} canali × {info['stati']} stati",
-        dispositivo=nome_disp, data=datetime.now(), durata=time.time() - t0, parametri=parametri,
-        testo=t.get("testo"), fonte_testo=t.get("fonte"),
-        n_token=int(t["ids"].shape[1]) if t else None,
-        chiave=chiave_esecuzione(fase, parametri))
-    if salva_auto:
-        try:
-            ris.info["file"] = salva_excel(ris, CARTELLA_RISULTATI)
-        except OSError as e:
-            st.warning(f"Salvataggio in risultati/ non riuscito: {e}")
-    st.session_state.risultati[fase.codice] = ris
-
-
 VISTE = ["📈 Grafici", "🧮 Tabella per strato", "📝 Testo analizzato"]
 
 
 # Presentazione di un risultato: contesto, riquadri, selettore della vista e download
-def mostra_risultato(fase, ris, parametri):
+def mostra_risultato(ris, id_vista):
     i = ris.info
     voci = [("modello", i["modello"]), ("dispositivo", i["dispositivo"]), ("formato", ris.note_formato),
             ("data", f"{i['data']:%d/%m/%Y %H:%M}"), ("durata", f"{i['durata']:.1f} s")]
@@ -543,20 +444,17 @@ def mostra_risultato(fase, ris, parametri):
         voci.append(("testo", f"{i['n_token']} token · {i['fonte_testo']}"))
     mostra_html("<div class='contesto'>" + "".join(f"<span><i>{e}</i>{html_sicuro(v)}</span>" for e, v in voci)
                 + "</div>")
-    if i.get("chiave") != chiave_esecuzione(fase, parametri):
-        st.warning("Questo risultato è stato ottenuto con un modello, un testo o dei parametri diversi da "
-                   "quelli selezionati ora. Premi **Esegui** per aggiornarlo.", icon="🔁")
 
     riquadri(ris.indicatori)
 
-    vista = st.segmented_control("Vista", VISTE, default=VISTE[0], key=f"vista_{ris.codice}",
+    vista = st.segmented_control("Vista", VISTE, default=VISTE[0], key="vista",
                                  label_visibility="collapsed") or VISTE[0]
     if vista == VISTE[0]:
         for k, graf in enumerate(ris.grafici):
             titolo_con_legenda(graf.titolo, graf.spiegazione, graf.come_leggere)
             with st.container(border=True):
                 st.plotly_chart(graf.figura, width="stretch", config=g.CONFIG, theme=None,
-                                key=f"grafico_{ris.codice}_{k}")
+                                key=f"grafico_{id_vista}_{k}")
         st.caption("Suggerimento: l'icona a forma di fotocamera sopra ogni grafico salva un PNG ad alta "
                    "risoluzione, pronto per relazioni e pubblicazioni. Trascinando si ingrandisce; "
                    "doppio clic per tornare indietro.")
@@ -569,43 +467,239 @@ def mostra_risultato(fase, ris, parametri):
                    + (" Le righe in ambra sono quelle citate nella colonna Nota." if ris.evidenzia else ""))
     else:
         if i.get("testo"):
-            st.text_area("Testo analizzato", i["testo"], height=260, disabled=True, label_visibility="collapsed")
+            st.text_area("Testo analizzato", i["testo"], height=260, disabled=True, label_visibility="collapsed",
+                         key=f"testo_{id_vista}")
         else:
             st.caption("Questa fase non usa il testo: legge solo i pesi.")
 
     c1, c2 = st.columns([1, 2])
-    c1.download_button("⬇ Scarica i risultati in Excel", data=crea_excel(ris), file_name=nome_file(ris),
+    c1.download_button("⬇ Scarica questa fase in Excel", data=crea_excel(ris), file_name=nome_file(ris),
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                       type="primary", width="stretch")
+                       width="stretch", key=f"scarica_{id_vista}")
     if i.get("file"):
-        c2.caption(f"Salvato anche in `{i['file']}`")
+        c2.caption(f"Salvato in `{i['file']}`")
 
 
-if st.session_state.model is None or fase is None:
-    pagina_benvenuto()
-else:
+# Barra laterale: riepilogo dei tre passi e scorciatoie per tornare indietro
+def barra_laterale(fasi, errori_fasi):
+    info, t = st.session_state.info, st.session_state.testo
+    n_lavori, n_fatti = len(lavori(fasi)), len(st.session_state.risultati)
+    with st.sidebar:
+        mostra_html(f"<div class='marchio'>{svg_marchio()}<div><div class='marchio-nome'>Mamba<span>·</span>Modi</div>"
+                    f"<div class='marchio-sotto'>analisi di poli e stabilità</div></div></div>")
+        with st.container(key="passo_lato_modello"):
+            titolo_passo(st.empty(), 1, "Modello", "pronto" if info else "da caricare", "ok" if info else "attesa")
+            if info:
+                riga_stato(info["nome"], f"{DISPOSITIVI[st.session_state.dispositivo]} · FP32")
+                st.button("Cambia modello", width="stretch", on_click=vai, args=("modello",),
+                          disabled=st.session_state.passo == "modello")
+        with st.container(key="passo_lato_testo"):
+            pronto = t is not None and st.session_state.passo == "risultati"
+            titolo_passo(st.empty(), 2, "Testo", f"{t['ids'].shape[1]} token" if pronto else "da scegliere",
+                         "ok" if pronto else "attesa")
+            if pronto:
+                riga_stato(f"{t['ids'].shape[1]} token", t["fonte"])
+                st.button("Cambia testo", width="stretch", on_click=vai, args=("testo",))
+        with st.container(key="passo_lato_fasi"):
+            fatte = st.session_state.passo == "risultati"
+            stato = f"{n_fatti} di {n_lavori}" if fatte else f"{n_lavori} analisi"
+            titolo_passo(st.empty(), 3, "Fasi", stato, ("ok" if n_fatti == n_lavori else "errore") if fatte else "attesa")
+            for nome, errore in errori_fasi:
+                st.error(f"Errore nel file fasi/{nome}.py", icon="⚠️")
+                with st.expander("Dettagli"):
+                    st.code(errore)
+            if st.button("Ricarica le fasi", width="stretch",
+                         help="Rilegge i file in fasi/ dopo averne aggiunto o modificato uno. "
+                              "I risultati in memoria vengono cancellati."):
+                carica_fasi(ricarica=True)
+                svuota_risultati()
+                if st.session_state.passo == "risultati":
+                    st.session_state.passo = "testo"
+                st.rerun()
+        mostra_html("<div class='piede'>Elaborazione locale · nessuna connessione di rete</div>")
+
+
+PASSI = [("01", "Carica il modello", "Dalla cartella dei modelli scaricati. Il programma lo carica in FP32 "
+          "e controlla che sia analizzabile."),
+         ("02", "Scegli il testo", "Il testo di prova, un testo incollato o un file .txt: serve alle fasi che "
+          "fanno leggere il modello."),
+         ("03", "Leggi i risultati", "Tutte le fasi vengono eseguite insieme; si sfogliano da un menu e si "
+          "salvano in Excel solo se lo chiedi.")]
+
+
+# Passo ①: scelta e caricamento del modello
+def pagina_modello(fasi):
+    hero("Analisi spettrale di modelli state-space", "Analisi dei modi di Mamba",
+         "Misura poli, passi di campionamento e margini di stabilità di un modello Mamba-1, strato per strato. "
+         "Tutto gira sul tuo PC, senza connessione.")
+    capacita = "".join(f"<span>{html_sicuro(f.nome)}</span>" for f in fasi) + "<span>Esportazione in Excel</span>"
+    mostra_html(f"<div class='capacita'>{capacita}</div>")
+    passi = "".join(f"<div class='passo'><div class='num'>{n}</div><div class='tit'>{t}</div>"
+                    f"<div class='desc'>{d}</div></div>" for n, t, d in PASSI)
+    mostra_html(f"<div class='passi'>{passi}</div>")
+
+    with st.container(key="passo_modello"):
+        titolo_passo(st.empty(), 1, "Carica il modello", "pronto" if st.session_state.info else "da caricare",
+                     "ok" if st.session_state.info else "attesa")
+        c1, c2 = st.columns([5, 1], vertical_alignment="bottom")
+        c1.text_input("Cartella dei modelli", key="cartella",
+                      help="Predefinita: la cache di Hugging Face, dove from_pretrained salva i modelli "
+                           "scaricati. Va bene anche una cartella con config.json e i pesi.")
+        c2.button("Sfoglia…", on_click=sfoglia_cartella, width="stretch")
+
+        trovati = trova_modelli(st.session_state.cartella)
+        solo_mamba = st.toggle("Mostra solo modelli Mamba-1", value=True)
+        elenco = [m for m in trovati if m.is_mamba] if solo_mamba else trovati
+        if not trovati:
+            st.caption("Nessun modello trovato in questa cartella.")
+        elif not elenco:
+            st.caption(f"{len(trovati)} modelli trovati, nessuno Mamba-1. Disattiva il filtro per vederli.")
+
+        scelto = None
+        c1, c2 = st.columns([3, 2])
+        if elenco:
+            scelto = c1.selectbox("Modello", elenco,
+                                  format_func=lambda m: m.nome if m.is_mamba else f"{m.nome} [{m.tipo}]")
+            c1.caption(f"Pesi: {scelto.dimensione_gb:.2f} GB su disco · commit {scelto.commit}")
+        disp = c2.radio("Esegui su", list(DISPOSITIVI), format_func=DISPOSITIVI.get, horizontal=True,
+                        index=list(DISPOSITIVI).index(st.session_state.dispositivo))
+        if scelto is not None and disp == "cpu" and scelto.dimensione_gb > 2:
+            c2.caption(f"⚠ Modello grande su CPU: servono circa {scelto.dimensione_gb * 1.3:.1f} GB di RAM liberi.")
+
+        info = st.session_state.info
+        c1, c2 = st.columns(2)
+        if c1.button("Carica e verifica", type="primary" if info is None else "secondary",
+                     disabled=scelto is None, width="stretch"):
+            carica_modello(scelto, disp)
+            if st.session_state.model is not None:
+                vai("testo")
+                st.rerun()
+        if info is not None:
+            c2.button(f"Continua con {info['nome'].split('/')[-1]} →", type="primary", width="stretch",
+                      on_click=vai, args=("testo",))
+
+    if st.session_state.controlli and st.session_state.model is None:
+        st.subheader("Esito dell'ultima verifica")
+        mostra_controlli(st.session_state.controlli)
+        st.error("Il modello non è stato caricato: vedi il controllo non superato qui sopra.")
+
+
+# Passo ②: scelta del testo, poi esecuzione di tutte le fasi
+def pagina_testo(fasi):
     intestazione_modello(st.session_state.info)
+    with st.container(key="passo_testo"):
+        titolo_passo(st.empty(), 2, "Scegli il testo", "da scegliere", "attesa")
+        fonte = st.radio("Fonte", FONTI, horizontal=True, key="fonte", label_visibility="collapsed")
+        grezzo = caricato = None
+        if fonte == FONTI[0]:
+            st.caption("Breve testo in inglese sulla teoria del controllo: un riferimento fisso per confrontare "
+                       "esecuzioni diverse.")
+            grezzo = TESTO_ESEMPIO
+            st.text_area("Testo di prova", TESTO_ESEMPIO, height=230, disabled=True, label_visibility="collapsed")
+        elif fonte == FONTI[1]:
+            grezzo = st.text_area("Testo", height=230, key="testo_incollato", label_visibility="collapsed",
+                                  placeholder="Incolla qui il testo (in inglese, come i dati di addestramento di Mamba).")
+        else:
+            caricato = st.file_uploader("File di testo", type=["txt", "md"], label_visibility="collapsed")
+            if caricato is not None:
+                grezzo = caricato.getvalue().decode("utf-8", errors="replace")
+                st.text_area("Contenuto del file", grezzo, height=230, disabled=True, label_visibility="collapsed",
+                             key=f"anteprima_{caricato.name}_{caricato.size}")
+        max_token = st.number_input("Token massimi", 16, 8192, MAX_TOKEN_PREDEFINITO, step=64,
+                                    help="I testi più lunghi vengono troncati. Su una GPU da 8 GB con un modello "
+                                         "da circa 1.4B parametri, 1024 è un limite prudente.")
+        pronto = bool(grezzo and grezzo.strip())
+        if pronto:
+            n = len(st.session_state.tok(grezzo.strip()).input_ids)
+            st.caption(f"{n} token" + (f": verranno analizzati i primi {int(max_token)}" if n > max_token else ""))
+
+        elenco = lavori(fasi)
+        st.caption(f"Verranno eseguite {len(elenco)} analisi: "
+                   + ", ".join(descrivi_lavoro(f, p).replace("Fase ", "") for f, p in elenco) + ".")
+        c1, c2 = st.columns([1, 2])
+        c1.button("← Cambia modello", width="stretch", on_click=vai, args=("modello",))
+        if c2.button("Esegui tutte le fasi →", type="primary", disabled=not pronto, width="stretch"):
+            nome_fonte = {FONTI[0]: "testo di prova", FONTI[1]: "testo incollato"}.get(
+                fonte, f"file {getattr(caricato, 'name', '')}")
+            imposta_testo(grezzo.strip(), nome_fonte, int(max_token))
+            esegui_tutte(fasi)
+            vai("risultati")
+            st.rerun()
+
+
+# Passo ③: tutte le fasi già eseguite, sfogliabili da un menu; salvataggio su disco solo a richiesta
+def pagina_risultati(fasi):
+    info, t = st.session_state.info, st.session_state.testo
+    risultati, errori = st.session_state.risultati, st.session_state.errori
+    eseguite = [f for f in fasi if any(k[0] == f.codice for k in list(risultati) + list(errori))]
+    hero("Risultati", info["nome"],
+         f"{html_sicuro(DISPOSITIVI[st.session_state.dispositivo])} · {t['ids'].shape[1]} token · "
+         f"{html_sicuro(t['fonte'])} · {len(risultati)} analisi completate"
+         + (f", {len(errori)} non riuscite" if errori else ""))
+    c1, c2, _ = st.columns([1, 1, 3])
+    c1.button("← Cambia testo", width="stretch", on_click=vai, args=("testo",))
+    c2.button("← Cambia modello", width="stretch", on_click=vai, args=("modello",))
+    if not eseguite:
+        st.warning("Nessuna fase eseguita: torna al testo e premi *Esegui tutte le fasi*.")
+        return
+
+    colonne = st.columns([3] + [1] * max(len(p.parametri) for p in eseguite))
+    fase = colonne[0].selectbox("Fase", eseguite, key="fase_scelta",
+                                format_func=lambda f: f"Fase {f.codice} · {f.nome}")
+    parametri = {}
+    for col, p in zip(colonne[1:], fase.parametri):
+        parametri[p.chiave] = col.selectbox(p.etichetta, p.scelte, key=f"param_{p.chiave}", help=p.aiuto or None,
+                                            index=p.scelte.index(p.predefinito) if p.predefinito in p.scelte else 0)
+
     mostra_html(f"<div class='testa-fase'><span class='codice'>FASE {html_sicuro(fase.codice)}</span>"
                 f"<span class='nome'>{html_sicuro(fase.nome)}</span></div>"
                 f"<div class='breve-fase'>{html_sicuro(fase.breve)}</div>")
-    with st.expander("Cosa misura questa fase", icon="📘", expanded=fase.codice not in st.session_state.risultati):
+    with st.expander("Cosa misura questa fase", icon="📘"):
         st.markdown(fase.spiegazione)
 
-    parametri = {}
-    if fase.parametri:
-        colonne = st.columns(min(len(fase.parametri), 4))
-        for col, p in zip(colonne, fase.parametri):
-            parametri[p.chiave] = col.selectbox(p.etichetta, p.scelte,
-                                                index=p.scelte.index(p.predefinito) if p.predefinito in p.scelte else 0,
-                                                help=p.aiuto or None, key=f"param_{fase.codice}_{p.chiave}")
-
-    manca_testo = fase.usa_testo and st.session_state.testo is None
-    if manca_testo:
-        st.info("Questa fase fa leggere un testo al modello: sceglilo nella sezione ② della barra laterale "
-                "(il testo di esempio dà risultati ripetibili).", icon="📄")
-    if st.button(f"▶ Esegui la Fase {fase.codice}", type="primary", disabled=manca_testo):
-        esegui_fase(fase, parametri)
-
-    ris = st.session_state.risultati.get(fase.codice)
+    k = chiave(fase, parametri)
+    ris = risultati.get(k)
     if ris is not None:
-        mostra_risultato(fase, ris, parametri)
+        mostra_risultato(ris, "_".join([fase.codice] + [str(v) for v in parametri.values()]))
+    elif k in errori:
+        messaggio, dettaglio = errori[k]
+        st.error(f"{descrivi_lavoro(fase, parametri)} non è riuscita: {messaggio}")
+        if dettaglio:
+            with st.expander("Dettagli"):
+                st.code(dettaglio)
+
+    st.divider()
+    with st.container(key="passo_salvataggio"):
+        da_salvare = [c for c, r in risultati.items() if not r.info.get("file")]
+        titolo_passo(st.empty(), "↓", "Salvataggio in risultati/",
+                     "tutto salvato" if risultati and not da_salvare else f"{len(da_salvare)} da salvare",
+                     "ok" if risultati and not da_salvare else "attesa")
+        st.caption(f"I risultati restano in memoria finché l'app è aperta. Per conservarli si salvano in Excel "
+                   f"nella cartella `{CARTELLA_RISULTATI}`.")
+        c1, c2 = st.columns(2)
+        c1.button(f"Salva {descrivi_lavoro(fase, parametri)}", width="stretch", disabled=ris is None,
+                  on_click=salva, args=([k],))
+        c2.button(f"Salva tutte le fasi ({len(risultati)} file)", type="primary", width="stretch",
+                  disabled=not risultati, on_click=salva, args=(list(risultati),))
+        esito = st.session_state.esito_salvataggio
+        if esito:
+            salvati, problemi = esito
+            if salvati:
+                st.success(f"{len(salvati)} file salvati in `{CARTELLA_RISULTATI}`.")
+            for p in problemi:
+                st.warning(f"Salvataggio non riuscito: {p}")
+
+
+fasi, errori_fasi = carica_fasi()
+if st.session_state.model is None:
+    st.session_state.passo = "modello"
+elif st.session_state.passo == "risultati" and st.session_state.testo is None:
+    st.session_state.passo = "testo"
+barra_laterale(fasi, errori_fasi)
+
+if st.session_state.messaggio:
+    tipo, testo_msg = st.session_state.messaggio
+    getattr(st, tipo)(testo_msg)
+    st.session_state.messaggio = None
+
+{"modello": pagina_modello, "testo": pagina_testo, "risultati": pagina_risultati}[st.session_state.passo](fasi)
