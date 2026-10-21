@@ -14,6 +14,7 @@ import torch
 import torch.nn.functional as F
 
 from nucleo.modelli import _carica_pesi, carica_e_verifica, cartella_cache_predefinita, trova_modelli
+from nucleo import precisione
 from nucleo.precisione import FORMATI, copia_in_formato
 from nucleo.risultato import Contesto
 from nucleo.sonde import delta_modello, esegui_con_sonde
@@ -87,15 +88,20 @@ def main():
               "A_log caricato = A_log FP32 arrotondato con .to(formato)")
         del copia, interni, ricalcolati
 
-    print("== copia_in_formato")
-    with copia_in_formato(ctx, torch.float16) as (copia, info_copia):
-        esito(next(model.parameters()).device.type == "cpu" if dispositivo == "cuda" else True,
-              f"modello FP32 su {next(model.parameters()).device} durante la copia")
-        esito(next(copia.parameters()).dtype == torch.float16, "copia in FP16")
-    esito(info_copia["fp32_intatto"] and next(model.parameters()).device.type == dispositivo,
-          f"modello FP32 intatto e di nuovo su {dispositivo}")
-    _, delta_dopo = delta_interni_e_ricalcolati(model, ids)
-    esito(all(torch.equal(a, b) for a, b in zip(delta_prima, delta_dopo)), "Delta FP32 identici a prima")
+    # Entrambe le strategie: FP32 su CPU e FP32 riletto dal disco (forzata con un margine enorme)
+    for margine, atteso in ((precisione.MARGINE_GB, None), (1e9, "disco")):
+        precisione.MARGINE_GB = margine
+        print(f"== copia_in_formato (margine {margine} GB)")
+        with copia_in_formato(ctx, torch.float16) as (copia, info_copia):
+            esito(next(copia.parameters()).dtype == torch.float16,
+                  f"copia in FP16, modo {info_copia['modo']}, FP32 su {next(model.parameters()).device}")
+        if atteso and dispositivo == "cuda":
+            esito(info_copia["modo"] == atteso, f"modo {atteso}")
+        esito(info_copia["fp32_intatto"] and next(model.parameters()).device.type == dispositivo,
+              f"modello FP32 intatto e di nuovo su {dispositivo}")
+        esito(model.lm_head.weight is model.backbone.embeddings.weight, "lm_head ancora legato agli embedding")
+        _, delta_dopo = delta_interni_e_ricalcolati(model, ids)
+        esito(all(torch.equal(a, b) for a, b in zip(delta_prima, delta_dopo)), "Delta FP32 identici a prima")
 
     print("Tutte le prove superate." if fallite == 0 else f"{fallite} prove fallite.")
     sys.exit(1 if fallite else 0)
