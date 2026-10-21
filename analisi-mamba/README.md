@@ -30,15 +30,18 @@ Il browser si apre su `http://localhost:8501`. Per chiudere: `Ctrl+C` nel termin
 
 ## Uso
 
-1. **Modello.** La cartella predefinita è la cache di Hugging Face
-   (`C:\Users\<nome>\.cache\huggingface\hub`), dove sono già il 130M e il 1.4B.
-   Si sceglie il modello e si preme *Carica e verifica*. Il programma lo carica in FP32 senza rete
-   e fa sei controlli: architettura, tokenizer, pesi, struttura interna, valori finiti, prova di lettura.
-2. **Testo.** Si sceglie tra testo di esempio (fisso, per risultati ripetibili), testo incollato
-   o file `.txt`. Serve solo alle fasi 2a e 2b.
-3. **Fase.** Si sceglie la fase e si preme *Esegui*. Si ottengono riquadri di sintesi, grafici
-   con la guida alla lettura, la tabella per strato e un file Excel scaricabile.
-   Ogni risultato viene salvato anche in `risultati/`.
+La procedura è a passi; la barra laterale riassume lo stato e permette di tornare indietro.
+
+1. **Modello.** All'apertura si sceglie il modello dalla cartella (predefinita: la cache di Hugging Face,
+   `C:\Users\<nome>\.cache\huggingface\hub`) e il dispositivo, poi *Carica e verifica*. Il programma lo
+   carica in FP32 senza rete e fa sei controlli: architettura, tokenizer, pesi, struttura interna, valori
+   finiti, prova di lettura.
+2. **Testo.** Testo di prova (visibile per intero, fisso per risultati ripetibili), testo incollato o file
+   `.txt`. *Esegui tutte le fasi* esegue ogni fase, e le fasi con parametri in tutte le combinazioni
+   (3a, 3b, 3c in FP16, BF16 e FP32 controllo).
+3. **Risultati.** Un menu sceglie la fase (e il formato, per la Fase 3): riquadri di sintesi, grafici con la
+   guida alla lettura, tabella per strato, download in Excel. Niente viene scritto su disco finché non si
+   preme *Salva* (una fase o tutte) nel riquadro in fondo: i file vanno in `risultati/`.
 
 ## Struttura
 
