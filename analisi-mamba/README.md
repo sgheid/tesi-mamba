@@ -110,7 +110,10 @@ prove/            script da riga di comando (vedi Note)
     e salva righe e indicatori in JSON;
   - `verifica_fusione.py nuova prove/fotografia`: confronta le fasi attuali con `prove/fotografia/`, la
     fotografia delle sei fasi precedenti (130M su CPU). Esito al momento della riorganizzazione: identiche.
-- GPU e CPU possono dare conteggi di "ā = 1" leggermente diversi: quando si riportano i risultati
-  conviene indicare il dispositivo, che compare nel file Excel.
+- **I poli su 1 in FP32 dipendono dal dispositivo.** Δ e margini esatti sono gli stessi su CPU e GPU, ma l'exp
+  in FP32 della GPU non è arrotondato correttamente vicino a 1 e porta a 1 anche margini oltre 2⁻²⁴: sul testo di
+  prova il 130M ha 50 958 poli su 1 su CPU e 99 515 su GPU, il 1.4B 495 310 su CPU e 919 870 su GPU. I poli in 0 non
+  cambiano (underflow). La Fase 3 riporta anche "Poli su 1, arrotondamento esatto" (margine esatto < 2⁻²⁵), uguale
+  su ogni dispositivo. Quando si riportano i risultati conviene indicare il dispositivo, che compare nel file Excel.
 - Il controllo automatico dei file di Streamlit è spento (`.streamlit/config.toml`), perché
   riempirebbe il terminale di errori innocui provenienti da `transformers`.

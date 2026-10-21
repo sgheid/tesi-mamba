@@ -69,10 +69,18 @@ def main():
         vecchia_32, vecchia_x = MAPPA[codice]
         v32 = leggi(arg.vecchia, vecchia_32)
         nuova = leggi(arg.nuova, f"{codice}_Solo-FP32")
-        campi = ("righe", "indicatori", "evidenzia", "note_formato")
-        elenco = list(differenze({k: v32[k] for k in campi}, {k: nuova[k] for k in campi}))
+        # Tutto ciò che c'era deve restare identico; colonne e indicatori aggiunti dopo vengono solo elencati
+        vecchie_chiavi = set(v32["righe"][0])
+        vecchie_etichette = {i["etichetta"] for i in v32["indicatori"]}
+        ridotta = dict(righe=[{k: v for k, v in r.items() if k in vecchie_chiavi} for r in nuova["righe"]],
+                       indicatori=[i for i in nuova["indicatori"] if i["etichetta"] in vecchie_etichette],
+                       evidenzia=nuova["evidenzia"], note_formato=nuova["note_formato"])
+        elenco = list(differenze({k: v32[k] for k in ridotta}, ridotta))
+        aggiunte = sorted(set(nuova["righe"][0]) - vecchie_chiavi) + [
+            i["etichetta"] for i in nuova["indicatori"] if i["etichetta"] not in vecchie_etichette]
         print(f"Fase {codice} · Solo FP32 contro vecchia {vecchia_32}: "
-              + ("identica (righe, indicatori, evidenze, formato)" if not elenco else f"{len(elenco)} differenze"))
+              + ("identica (righe, indicatori, evidenze, formato)" if not elenco else f"{len(elenco)} differenze")
+              + (f"; aggiunti: {', '.join(aggiunte)}" if aggiunte else ""))
         for d in elenco[:20]:
             print(f"    {d}")
         totale += len(elenco)

@@ -55,12 +55,18 @@ COLONNE = [Colonna("strato", "Strato", "", "int"),
            Colonna("memoria", "Memoria massima", "token ≈ 1/(1-abar)", "sci"),
            Colonna("su_1", "Poli su 1 in FP32", "numero", "int"),
            Colonna("perc_1", "Poli su 1 in FP32", "% dello strato", "perc"),
+           Colonna("su_1_esatto", "Poli su 1, arrotondamento esatto", "margine < 2^-25", "int"),
            Colonna("in_0", "Poli in 0 in FP32", "numero", "int")]
 
 LEGENDA = [("Polo più vicino a 1", "Il margine di stabilità più piccolo dello strato, calcolato esattamente (FP64)."),
            ("Memoria massima", "Quanti token servono a quel modo per dimenticare: circa 1/(1 - abar)."),
            ("Poli su 1 in FP32", "Poli che FP32 arrotonda esattamente a 1: da asintoticamente a marginalmente stabili."),
            ("% dello strato", "Quota dei poli dello strato (token x canali x stati) arrotondati a 1."),
+           ("Poli su 1, arrotondamento esatto", "Poli con margine esatto (FP64) sotto 2^-25: quelli che un exp FP32 "
+                                                "arrotondato correttamente porta a 1. Non dipende dal dispositivo. "
+                                                "'Poli su 1 in FP32' usa invece l'exp del dispositivo: sulla GPU, che "
+                                                "non arrotonda correttamente vicino a 1, sono fino a circa il doppio "
+                                                "(130M, testo di prova: 50 958 su CPU, 99 515 su GPU)."),
            ("Poli in 0 in FP32", "Modi che si azzerano a ogni token: nessuna memoria, nessun rischio per la stabilità.")]
 
 
@@ -76,7 +82,7 @@ def _margini(ctx):
             a32, a64 = -torch.exp(mixer.A_log.float()), -torch.exp(mixer.A_log.double())
             L, D = d32.shape
             passo = max(1, 4_000_000 // (D * a32.shape[1]))
-            margine_min, su_1, in_0, fuori = float("inf"), 0, 0, 0
+            margine_min, su_1, in_0, fuori, su_1_esatto = float("inf"), 0, 0, 0, 0
             isto = torch.zeros(N_BIN, dtype=torch.float64, device=d32.device)
             for s in range(0, L, passo):
                 abar32 = torch.exp(d32[s:s + passo, :, None] * a32)
@@ -85,12 +91,14 @@ def _margini(ctx):
                 su_1 += int((abar32 == 1.0).sum().item())
                 in_0 += int((abar32 == 0.0).sum().item())
                 fuori += int((abar32 > 1.0).sum().item())
+                su_1_esatto += int((margine64 < g.SOGLIA_FP32).sum().item())
                 lg = torch.log10(margine64.clamp_min(1e-300)).clamp(LOG_MIN, LOG_MAX - 1e-9)
                 isto += torch.histc(lg.float(), bins=N_BIN, min=LOG_MIN, max=LOG_MAX).double()
             totale = L * a32.numel()
             dati[i] = dict(strato=i, margine=margine_min,
                            memoria=1.0 / margine_min if margine_min > 0 else float("inf"),
-                           su_1=su_1, perc_1=su_1 / totale, in_0=in_0, fuori=fuori, totale=totale)
+                           su_1=su_1, perc_1=su_1 / totale, in_0=in_0, fuori=fuori, totale=totale,
+                           su_1_esatto=su_1_esatto)
             istogrammi[i] = isto.cpu().numpy()
             ctx.avanzamento((i + 1) / n, f"Strato {i + 1} di {n}")
         return hook
@@ -104,6 +112,15 @@ def _sintesi(righe):
     piu_vicino = min(righe, key=lambda r: r["margine"])
     peggiori = [r for r in sorted(righe, key=lambda r: -r["su_1"]) if r["su_1"] > 0][:3]
     return totale, su_1, in_0, fuori, piu_vicino, peggiori
+
+
+# Poli su 1 contati dal margine esatto, uguali su ogni dispositivo, e scarto dell'exp del dispositivo
+def _nota_esatti(su_1, esatti):
+    if su_1 == esatti:
+        return "margine esatto < 2⁻²⁵: coincide con il conteggio dell'exp di questo dispositivo"
+    scarto = su_1 - esatti
+    return (f"margine esatto < 2⁻²⁵, non dipende dal dispositivo; l'exp di questo dispositivo ne porta a 1 "
+            f"{fmt_int(abs(scarto))} {'in più' if scarto > 0 else 'in meno'}")
 
 
 def _strati_peggiori(peggiori):
@@ -120,6 +137,7 @@ def _solo_fp32(ctx):
     righe, istogrammi = _margini(ctx)
     n = len(righe)
     totale, su_1, in_0, fuori, piu_vicino, peggiori = _sintesi(righe)
+    esatti = sum(valori(righe, "su_1_esatto"))
 
     indicatori = [
         Indicatore("Poli discreti esaminati", fmt_int(totale),
@@ -131,6 +149,7 @@ def _solo_fp32(ctx):
         Indicatore("Arrotondati a 1 in FP32", fmt_int(su_1),
                    f"{fmt_perc(su_1 / totale)} dei poli: marginalmente stabili",
                    "attenzione" if su_1 > 0 else "ok"),
+        Indicatore("Su 1 con arrotondamento esatto", fmt_int(esatti), _nota_esatti(su_1, esatti)),
         Indicatore("Polo più vicino a 1", fmt_sci(piu_vicino["margine"]),
                    f"strato {piu_vicino['strato']}, memoria ≈ {fmt_sci(piu_vicino['memoria'])} token"),
         Indicatore("Strati con più poli su 1", _strati_peggiori(peggiori),
@@ -161,6 +180,7 @@ def _con_confronto(ctx, nome):
     errori, righe_r, istogrammi_r = _errori(cf.tratto(ctx, 0.6, 1.0), nome, passaggio)
     totale, su_1, in_0, fuori, piu_vicino, peggiori = _sintesi(righe)
     _, su_1_r, in_0_r, fuori_r, piu_vicino_r, peggiori_r = _sintesi(righe_r)
+    esatti, esatti_r = sum(valori(righe, "su_1_esatto")), sum(valori(righe_r, "su_1_esatto"))
 
     indicatori = [
         errori.indicatori[0],
@@ -173,6 +193,8 @@ def _con_confronto(ctx, nome):
         cf.indicatore("Arrotondati a 1 in FP32", su_1, su_1_r, fmt_int, nome,
                       f"{fmt_perc(su_1 / totale)} → {fmt_perc(su_1_r / totale)} dei poli: marginalmente stabili",
                       "attenzione" if su_1 or su_1_r else "ok"),
+        cf.indicatore("Su 1 con arrotondamento esatto", esatti, esatti_r, fmt_int, nome,
+                      "FP32: " + _nota_esatti(su_1, esatti)),
         cf.indicatore("Polo più vicino a 1", piu_vicino["margine"], piu_vicino_r["margine"], fmt_sci, nome,
                       f"strato {piu_vicino['strato']} → {piu_vicino_r['strato']}"
                       + (": margine 0, cioè Δ = 0" if piu_vicino_r["margine"] == 0 else "")),
@@ -277,6 +299,11 @@ def _grafico_su_uno(righe, righe_r=None, nome=None):
 - Il numero dipende dal testo: testi diversi producono $\\Delta$ diversi, quindi poli diversi.
 - **Esempio di lettura:** una barra a 2% in uno strato da 1536 canali × 16 stati × 200 token significa circa
   98 000 poli che, in quello strato, hanno smesso di dimenticare.
+- **Il conteggio dipende dal dispositivo.** Le barre usano l'exp FP32 del dispositivo, come fa il modello. Sulla
+  CPU l'exp è arrotondato correttamente e dà esattamente i poli con margine sotto $2^{-25}$; sulla GPU no, e vicino
+  a 1 arrotonda a 1 anche margini oltre $2^{-24}$: i poli su 1 sono quasi il doppio (130M, testo di prova: 50 958 su
+  CPU, 99 515 su GPU; 1.4B: 495 310 su CPU, 919 870 su GPU). I margini esatti e i poli in 0 non cambiano. La colonna
+  "Poli su 1, arrotondamento esatto" della tabella è il conteggio che non dipende dal dispositivo.
 """
     if righe_r:
         come_leggere += f"""- **Barra blu = FP32, barra arancione accanto = {nome}** nello stesso strato. Un'arancione molto più alta della blu
@@ -389,7 +416,7 @@ def _errori(ctx, nome, passaggio):
         isto = torch.zeros(N_ERR, dtype=torch.float64, device=dev)
         vb = torch.zeros(N_VIC, dtype=torch.float64, device=dev)
         v1 = torch.zeros(N_VIC, dtype=torch.float64, device=dev)
-        margine_min_r, in_0_r, fuori_r = float("inf"), 0, 0
+        margine_min_r, in_0_r, fuori_r, su_1_esatto_r = float("inf"), 0, 0, 0
         isto_r = torch.zeros(N_BIN, dtype=torch.float64, device=dev)
         for s in range(0, L, passo):
             db, dr = d_b[s:s + passo], d_r[s:s + passo]
@@ -420,6 +447,7 @@ def _errori(ctx, nome, passaggio):
                 margine_min_r = min(margine_min_r, m_r_finiti.min().item())
             in_0_r += int((abar_r == 0.0).sum().item())
             fuori_r += int((abar_r > 1.0).sum().item())
+            su_1_esatto_r += int((m_r_finiti < g.SOGLIA_FP32).sum().item())
             lg_r = torch.log10(m_r_finiti.clamp_min(1e-300)).clamp(LOG_MIN, LOG_MAX - 1e-9)
             isto_r += torch.histc(lg_r.float(), bins=N_BIN, min=LOG_MIN, max=LOG_MAX).double()
         isto_err[i] = isto.cpu().numpy()
@@ -431,7 +459,7 @@ def _errori(ctx, nome, passaggio):
         righe_r.append(dict(strato=i, margine=margine_min_r,
                             memoria=1.0 / margine_min_r if margine_min_r > 0 else float("inf"),
                             su_1=c["su_1_rid"], perc_1=c["su_1_rid"] / totale, in_0=in_0_r, fuori=fuori_r,
-                            totale=totale))
+                            totale=totale, su_1_esatto=su_1_esatto_r))
         istogrammi_r[i] = isto_r.cpu().numpy()
         ctx.avanzamento((i + 1) / n, f"{nome}, strato {i + 1} di {n}")
 
