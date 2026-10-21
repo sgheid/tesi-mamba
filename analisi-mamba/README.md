@@ -50,6 +50,8 @@ fasi/             una fase per file: ogni file con FASE = Fase(...) diventa una 
   fase2a_delta.py
   fase2b_poli_discreti.py
   fase3a_poli_continui_arrotondati.py   Fase 3: pesi in FP16/BF16, ricorrenza in FP32
+  fase3b_delta_bassa_precisione.py
+  fase3c_poli_discreti_bassa_precisione.py
   _modello_nuova_fase.py   modello da copiare (ignorato: inizia con "_")
 ```
 
@@ -68,6 +70,9 @@ fasi/             una fase per file: ogni file con FASE = Fase(...) diventa una 
 - La Fase 3 confronta con la baseline FP32 una copia del modello con i pesi in FP16 o BF16, letta dal disco;
   il modello FP32 caricato non viene mai modificato. "FP32 (controllo)" deve dare errori esattamente nulli.
   Sulle GPU Turing (RTX 20xx) BF16 non è nativo: PyTorch lo emula, e il risultato lo indica.
+- Nelle fasi 3b e 3c, sulla GPU, il modello FP32 lascia spazio alla copia: va su CPU se la memoria
+  virtuale di Windows (RAM + file di paging) basta, altrimenti (tipicamente col 1.4B) i suoi pesi vengono
+  tolti e alla fine riletti dal disco. Il riquadro "Formato dei pesi" dice quale strada è stata usata.
 - `prove/` contiene due script da riga di comando: `prova_delta_modello.py` (Δ ricalcolato = Δ interno
   del modello in FP32/FP16/BF16) e `riesegui_fasi_1_2.py` (numeri delle Fasi 1-2 da confrontare).
 - GPU e CPU possono dare conteggi di "ā = 1" leggermente diversi: quando si riportano i risultati
