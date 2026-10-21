@@ -22,77 +22,96 @@ CARTELLA_RISULTATI = os.path.join(CARTELLA_APP, "risultati")
 st.set_page_config(page_title="Analisi modi di Mamba", page_icon="〰", layout="wide",
                    initial_sidebar_state="expanded")
 
-# Stile della pagina: palette blu notte/blu, numeri in monospazio, griglia da carta millimetrata
+# Stile della pagina: tema scuro blu notte, numeri in monospazio, griglia da carta millimetrata
 st.markdown("""
 <style>
-  :root {--notte: #0f2747; --blu: #2a78d6; --blu-chiaro: #86b6ef; --linea: #e3e8f0; --testo-2: #4b5567;
-         --tenue: #8a93a3; --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
-         --ombra: 0 1px 2px rgba(15,39,71,0.04), 0 4px 14px rgba(15,39,71,0.06);}
+  :root {--sfondo: #0b1220; --superficie: #111a2c; --superficie-2: #17223a; --linea: #22304a;
+         --notte: #e6ecf5; --testo-2: #a9b5c9; --tenue: #6f7e97;
+         --blu: #4c9aff; --blu-chiaro: #8cc2ff; --verde: #3ccf73; --ambra: #f5b83d; --rosso: #ff6b6b;
+         --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+         --ombra: 0 1px 2px rgba(0,0,0,0.3), 0 6px 18px rgba(0,0,0,0.28);}
   .block-container {padding-top: 1.6rem; max-width: 1280px;}
   header[data-testid="stHeader"] {background: transparent;}
   h1, h2, h3, h4 {letter-spacing: -0.01em; color: var(--notte);}
 
-  section[data-testid="stSidebar"] {width: 360px !important;
-      background-color: #eef2f8;
-      background-image: linear-gradient(rgba(42,120,214,0.045) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(42,120,214,0.045) 1px, transparent 1px);
-      background-size: 20px 20px;}
-  .marchio {display: flex; gap: 12px; align-items: center; padding: 14px 16px; margin-bottom: 4px;
-            border-radius: 14px; color: #fff; box-shadow: 0 6px 18px rgba(15,39,71,0.22);
-            background-image: linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px),
-                              linear-gradient(135deg, #0f2747 0%, #1d4f8f 100%);
+  section[data-testid="stSidebar"] {width: 360px !important; background: #0d1526;
+      border-right: 1px solid var(--linea);}
+  .marchio {display: flex; gap: 12px; align-items: center; padding: 14px 16px; margin-bottom: 10px;
+            border-radius: 14px; color: #fff; border: 1px solid rgba(140,194,255,0.18);
+            box-shadow: 0 8px 22px rgba(0,0,0,0.4);
+            background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
+                              linear-gradient(135deg, #0d1f3c 0%, #163e74 100%);
             background-size: 14px 14px, 14px 14px, auto;}
   .marchio-nome {font-size: 1.12rem; font-weight: 700; letter-spacing: 0.01em;}
   .marchio-nome span {color: var(--blu-chiaro); margin: 0 4px;}
-  .marchio-sotto {font-size: 0.74rem; opacity: 0.75; letter-spacing: 0.04em;}
+  .marchio-sotto {font-size: 0.74rem; opacity: 0.7; letter-spacing: 0.04em;}
 
-  [class*="st-key-passo_"] {background: #ffffff; border: 1px solid var(--linea); border-radius: 14px;
+  [class*="st-key-passo_"] {background: var(--superficie); border: 1px solid var(--linea); border-radius: 14px;
                             padding: 14px 14px 12px 14px; box-shadow: var(--ombra);}
   .passo-testa {display: flex; align-items: center; gap: 10px; margin-bottom: 2px;}
-  .passo-num {display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
-              border-radius: 50%; background: var(--notte); color: #fff; font: 600 0.78rem var(--mono);}
-  .passo-tit {font-weight: 650; color: var(--notte); font-size: 1rem; flex: 1;}
+  .passo-num {display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; flex: none;
+              border-radius: 50%; background: var(--superficie-2); color: var(--notte); font: 600 0.78rem var(--mono);
+              border: 1px solid #33425e; box-shadow: 0 0 0 4px rgba(76,154,255,0.06);}
+  .passo-num.fatto {background: rgba(60,207,115,0.16); color: var(--verde); border-color: rgba(60,207,115,0.5);
+                    box-shadow: 0 0 0 4px rgba(60,207,115,0.07);}
+  .passo-tit {font-weight: 650; color: var(--notte); font-size: 1rem; flex: 1; line-height: 1.15;}
+  .passo-tit small {display: block; font: 600 0.62rem var(--mono); letter-spacing: 0.14em; text-transform: uppercase;
+                    color: var(--tenue); margin-bottom: 2px;}
   .chip {display: inline-block; font: 600 0.7rem var(--mono); padding: 2px 8px; border-radius: 999px;
          letter-spacing: 0.02em; white-space: nowrap;}
-  .chip.attesa {background: #eef1f5; color: var(--tenue);}
-  .chip.ok {background: rgba(12,163,12,0.12); color: #0a6e0a;}
-  .chip.errore {background: rgba(208,59,59,0.12); color: #a12a2a;}
-  .chip.codice {background: rgba(42,120,214,0.12); color: #1d5fae;}
-  .riga-stato {display: flex; gap: 10px; align-items: flex-start; background: #f5f8fc; border: 1px solid var(--linea);
-               border-radius: 10px; padding: 8px 10px; font-size: 0.84rem; color: var(--testo-2); line-height: 1.35;}
+  .chip.attesa {background: rgba(255,255,255,0.05); color: var(--tenue); border: 1px solid var(--linea);}
+  .chip.ok {background: rgba(60,207,115,0.14); color: #7ee2a3;}
+  .chip.errore {background: rgba(255,107,107,0.14); color: #ff9b9b;}
+  .chip.codice {background: rgba(76,154,255,0.16); color: var(--blu-chiaro);}
+  .riga-stato {display: flex; gap: 10px; align-items: flex-start; background: var(--superficie-2);
+               border: 1px solid var(--linea); border-radius: 10px; padding: 8px 10px; font-size: 0.84rem;
+               color: var(--testo-2); line-height: 1.35;}
   .riga-stato b {color: var(--notte);}
-  .riga-stato .punto {width: 8px; height: 8px; border-radius: 50%; background: #0ca30c; margin-top: 5px;
-                      box-shadow: 0 0 0 3px rgba(12,163,12,0.15); flex: none;}
-  .piede {font-size: 0.72rem; color: var(--tenue); text-align: center; margin-top: 6px; letter-spacing: 0.03em;}
+  .riga-stato .punto {width: 8px; height: 8px; border-radius: 50%; background: var(--verde); margin-top: 5px;
+                      box-shadow: 0 0 0 3px rgba(60,207,115,0.18), 0 0 8px rgba(60,207,115,0.5); flex: none;}
+  .piede {font-size: 0.72rem; color: var(--tenue); text-align: center; margin-top: 10px; padding-top: 12px;
+          letter-spacing: 0.03em; border-top: 1px solid var(--linea);}
+
+  /* Barra laterale: i tre passi come una procedura verticale, uniti da una linea tra i numeri */
+  [class*="st-key-passo_lato_"] {position: relative; overflow: visible; background: rgba(17,26,44,0.6);
+                                 box-shadow: none; padding: 14px 16px 12px 16px; border-radius: 12px;
+                                 transition: border-color 0.15s ease, box-shadow 0.15s ease;}
+  [class*="st-key-passo_lato_"]:not(.st-key-passo_lato_fasi)::after {content: ""; position: absolute; left: 29px;
+      bottom: -18px; width: 2px; height: 18px; background: linear-gradient(var(--linea), #2c3d5c);}
+  [class*="st-key-passo_lato_"] button {min-height: 2rem; padding: 0.2rem 0.75rem; font-size: 0.84rem;
+                                        background: transparent; border: 1px solid var(--linea); color: var(--testo-2);}
+  [class*="st-key-passo_lato_"] button:hover:not(:disabled) {border-color: var(--blu); color: var(--blu-chiaro);
+                                                             background: rgba(76,154,255,0.08);}
 
   .hero {position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center;
          gap: 20px; color: #fff; border-radius: 18px; padding: 26px 30px; margin-bottom: 18px;
-         box-shadow: 0 12px 30px rgba(15,39,71,0.22);
-         background-image: linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(255,255,255,0.055) 1px, transparent 1px),
-                           linear-gradient(125deg, #0f2747 0%, #184f95 55%, #2a78d6 100%);
+         border: 1px solid rgba(140,194,255,0.16); box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+         background-image: linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+                           linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px),
+                           linear-gradient(125deg, #0d1f3c 0%, #163e74 55%, #2a6fc4 100%);
          background-size: 24px 24px, 24px 24px, auto;}
   .hero .sopra {font: 600 0.72rem var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--blu-chiaro);}
   .hero .titolo {font-size: 2.05rem; font-weight: 700; line-height: 1.15; margin-top: 4px;}
-  .hero .sotto {font-size: 0.98rem; opacity: 0.88; margin-top: 8px; max-width: 760px; line-height: 1.5;}
+  .hero .sotto {font-size: 0.98rem; opacity: 0.85; margin-top: 8px; max-width: 760px; line-height: 1.5;}
   .hero svg {flex: none;}
   @media (max-width: 900px) {.hero svg {display: none;}}
 
   .capacita {display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 20px 0;}
-  .capacita span {background: #fff; border: 1px solid var(--linea); border-radius: 999px; padding: 4px 12px;
-                  font-size: 0.82rem; color: var(--testo-2); box-shadow: 0 1px 2px rgba(15,39,71,0.04);}
+  .capacita span {background: var(--superficie); border: 1px solid var(--linea); border-radius: 999px; padding: 4px 12px;
+                  font-size: 0.82rem; color: var(--testo-2);}
   .capacita span::before {content: "◆"; color: var(--blu); font-size: 0.6rem; margin-right: 7px; vertical-align: 2px;}
   .passi {display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 4px 0 20px 0;}
-  .passo {position: relative; background: #fff; border: 1px solid var(--linea); border-radius: 14px;
+  .passo {position: relative; background: var(--superficie); border: 1px solid var(--linea); border-radius: 14px;
           padding: 20px 20px 18px 20px; box-shadow: var(--ombra); overflow: hidden;}
   .passo::before {content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
-                  background: linear-gradient(90deg, var(--notte), var(--blu), var(--blu-chiaro));}
-  .passo .num {font: 600 1.6rem var(--mono); color: var(--blu-chiaro); line-height: 1;}
-  .passo .tit {font-weight: 650; color: var(--notte); margin: 10px 0 4px 0; font-size: 1.02rem;}
-  .passo .desc {font-size: 0.9rem; color: var(--testo-2); line-height: 1.5;}
+                  background: linear-gradient(90deg, #163e74, var(--blu), var(--blu-chiaro));}
+  .passo .num {font: 600 1.6rem var(--mono); color: var(--blu); line-height: 1;}
+  .passo .tit {font-weight: 650; color: var(--notte); margin: 10px 0 6px 0; font-size: 1.02rem;}
+  .passo .desc {font-size: 0.88rem; color: var(--testo-2); line-height: 1.55;}
+  .passo .desc b {color: var(--notte); font-weight: 600;}
 
-  .scheda-tecnica {display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: #fff;
+  .scheda-tecnica {display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: var(--superficie);
                    border: 1px solid var(--linea); border-radius: 14px; box-shadow: var(--ombra); margin-bottom: 12px;}
   .scheda-tecnica .voce {padding: 14px 18px;}
   .scheda-tecnica .voce + .voce {border-left: 1px solid var(--linea);}
@@ -100,63 +119,65 @@ st.markdown("""
   .scheda-tecnica .val {font: 600 1.35rem var(--mono); color: var(--notte); margin-top: 4px;}
 
   .testa-fase {display: flex; align-items: center; gap: 12px; margin: 10px 0 2px 0;}
-  .testa-fase .codice {font: 600 0.78rem var(--mono); letter-spacing: 0.1em; color: #fff; background: var(--blu);
+  .testa-fase .codice {font: 600 0.78rem var(--mono); letter-spacing: 0.1em; color: var(--blu-chiaro);
+                       background: rgba(76,154,255,0.14); border: 1px solid rgba(76,154,255,0.4);
                        padding: 4px 10px; border-radius: 8px;}
   .testa-fase .nome {font-size: 1.6rem; font-weight: 700; color: var(--notte);}
   .breve-fase {color: var(--testo-2); font-size: 0.92rem; margin-bottom: 10px;}
 
   .riquadri {display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 6px 0 18px 0;}
-  .riquadro {background: #fff; border: 1px solid var(--linea); border-left: 4px solid var(--blu-chiaro);
+  .riquadro {background: var(--superficie); border: 1px solid var(--linea); border-left: 4px solid var(--blu);
              border-radius: 12px; padding: 13px 15px 12px 15px; box-shadow: var(--ombra);
              transition: transform 0.15s ease, box-shadow 0.15s ease;}
-  .riquadro:hover {transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15,39,71,0.10);}
-  .riquadro.ok {border-left-color: #0ca30c;}
-  .riquadro.attenzione {border-left-color: #fab219;}
+  .riquadro:hover {transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,0.45);}
+  .riquadro.ok {border-left-color: var(--verde);}
+  .riquadro.attenzione {border-left-color: var(--ambra);}
   .riquadro .et {font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tenue);
                  margin-bottom: 5px;}
   .riquadro .val {font: 600 1.38rem var(--mono); color: var(--notte); line-height: 1.25;}
   .riquadro .nota {font-size: 0.78rem; color: var(--testo-2); margin-top: 4px; line-height: 1.35;}
   .stato {display: inline-block; font: 600 0.66rem var(--mono); padding: 1px 7px; border-radius: 999px;
           margin-left: 6px; vertical-align: 1px; text-transform: none; letter-spacing: 0;}
-  .stato.ok {background: rgba(12,163,12,0.12); color: #0a6e0a;}
-  .stato.attenzione {background: rgba(250,178,25,0.22); color: #7a5200;}
+  .stato.ok {background: rgba(60,207,115,0.14); color: #7ee2a3;}
+  .stato.attenzione {background: rgba(245,184,61,0.16); color: #ffd27a;}
 
   .contesto {display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;}
-  .contesto span {background: #fff; border: 1px solid var(--linea); border-radius: 8px; padding: 3px 10px;
+  .contesto span {background: var(--superficie); border: 1px solid var(--linea); border-radius: 8px; padding: 3px 10px;
                   font-size: 0.8rem; color: var(--testo-2);}
   .contesto span i {font-style: normal; color: var(--tenue); margin-right: 5px; font-size: 0.72rem;
                     text-transform: uppercase; letter-spacing: 0.06em;}
   .controllo {font-size: 0.88rem; margin: 2px 0;}
+  .controllo .dettaglio {color: var(--tenue);}
   .sottotitolo-grafico {color: var(--testo-2); font-size: 0.92rem; margin-top: -6px;}
 
   [class*="st-key-vista_"] {margin: 4px 0 6px 0;}
 
-  .tabella-wrap {max-height: 640px; overflow: auto; background: #fff; border: 1px solid var(--linea);
+  .tabella-wrap {max-height: 640px; overflow: auto; background: var(--superficie); border: 1px solid var(--linea);
                  border-radius: 14px; box-shadow: var(--ombra); margin: 4px 0 8px 0;}
   table.tabella {width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.88rem; margin: 0;}
-  table.tabella th {position: sticky; top: 0; z-index: 2; background: #f1f5fb; color: var(--notte);
+  table.tabella th {position: sticky; top: 0; z-index: 2; background: var(--superficie-2); color: var(--notte);
                     text-align: right; font-weight: 650; padding: 11px 14px 9px 14px; vertical-align: bottom;
-                    border: none; border-bottom: 2px solid #d5deeb; white-space: nowrap;}
+                    border: none; border-bottom: 2px solid #2c3d5c; white-space: nowrap;}
   table.tabella th small {display: block; font-weight: 400; font-size: 0.72rem; color: var(--tenue); margin-top: 2px;}
-  table.tabella td {padding: 7px 14px; text-align: right; border: none; border-bottom: 1px solid #eef1f6;
-                    font-family: var(--mono); font-variant-numeric: tabular-nums; color: #16233a;}
+  table.tabella td {padding: 7px 14px; text-align: right; border: none; border-bottom: 1px solid rgba(255,255,255,0.04);
+                    font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--notte);}
   table.tabella .centro {text-align: center;}
   table.tabella .sinistra {text-align: left; font-family: inherit;}
-  table.tabella tbody tr:nth-child(even) td {background: #fafbfd;}
-  table.tabella tbody tr:hover td {background: #eef4fc;}
-  table.tabella tbody tr.citata td {background: rgba(250,178,25,0.11);}
-  table.tabella tbody tr.citata td:first-child {box-shadow: inset 3px 0 0 #fab219;}
+  table.tabella tbody tr:nth-child(even) td {background: rgba(255,255,255,0.02);}
+  table.tabella tbody tr:hover td {background: rgba(76,154,255,0.08);}
+  table.tabella tbody tr.citata td {background: rgba(245,184,61,0.08);}
+  table.tabella tbody tr.citata td:first-child {box-shadow: inset 3px 0 0 var(--ambra);}
   table.tabella tbody tr:last-child td {border-bottom: none;}
   .badge-strato {display: inline-block; min-width: 30px; padding: 1px 6px; border-radius: 6px;
-                 background: #eef2f8; color: var(--notte); font-weight: 600;}
-  .nota-chip {display: inline-block; font-size: 0.74rem; background: rgba(250,178,25,0.22); color: #7a5200;
+                 background: rgba(76,154,255,0.12); color: var(--blu-chiaro); font-weight: 600;}
+  .nota-chip {display: inline-block; font-size: 0.74rem; background: rgba(245,184,61,0.16); color: #ffd27a;
               padding: 2px 9px; border-radius: 999px; white-space: nowrap;}
   table.tabella th .aiuto {position: relative; cursor: help; border-bottom: 1px dashed var(--tenue);}
   table.tabella th .suggerimento {visibility: hidden; opacity: 0; position: absolute; top: calc(100% + 10px); right: 0;
                                   width: 260px; white-space: normal; text-align: left; font-weight: 400;
-                                  font-size: 0.78rem; line-height: 1.4; color: #fff; background: var(--notte);
-                                  padding: 8px 11px; border-radius: 8px; z-index: 5; transition: opacity 0.12s ease;
-                                  box-shadow: 0 8px 20px rgba(15,39,71,0.25);}
+                                  font-size: 0.78rem; line-height: 1.4; color: var(--notte); background: #1c2945;
+                                  border: 1px solid #33425e; padding: 8px 11px; border-radius: 8px; z-index: 5;
+                                  transition: opacity 0.12s ease; box-shadow: 0 10px 24px rgba(0,0,0,0.5);}
   table.tabella th.a-sinistra .suggerimento {right: auto; left: 0;}
   table.tabella th .aiuto:hover .suggerimento {visibility: visible; opacity: 1;}
 </style>
@@ -336,9 +357,12 @@ def salva(chiavi):
 
 
 # Blocchi di presentazione
-def titolo_passo(segnaposto, numero, titolo, stato, tono):
-    segnaposto.markdown(f"<div class='passo-testa'><span class='passo-num'>{numero}</span>"
-                        f"<span class='passo-tit'>{titolo}</span><span class='chip {tono}'>{html_sicuro(stato)}</span></div>",
+# fatto: il numero diventa una spunta verde; sopra: etichetta piccola sopra il titolo (es. "Passo 1")
+def titolo_passo(segnaposto, numero, titolo, stato, tono, fatto=False, sopra=None):
+    sopra = f"<small>{html_sicuro(sopra)}</small>" if sopra else ""
+    segnaposto.markdown(f"<div class='passo-testa'><span class='passo-num{' fatto' if fatto else ''}'>"
+                        f"{'✓' if fatto else numero}</span><span class='passo-tit'>{sopra}{titolo}</span>"
+                        f"<span class='chip {tono}'>{html_sicuro(stato)}</span></div>",
                         unsafe_allow_html=True)
 
 
@@ -355,7 +379,7 @@ def hero(sopra, titolo, sotto):
 
 def mostra_controlli(controlli):
     for c in controlli:
-        dettaglio = f" — <span style='color:#8a93a3'>{html_sicuro(c.dettaglio)}</span>" if c.dettaglio else ""
+        dettaglio = f" — <span class='dettaglio'>{html_sicuro(c.dettaglio)}</span>" if c.dettaglio else ""
         mostra_html(f"<div class='controllo'>{'✅' if c.ok else '❌'} {html_sicuro(c.descrizione)}{dettaglio}</div>")
 
 
@@ -484,11 +508,18 @@ def mostra_risultato(ris, id_vista):
 def barra_laterale(fasi, errori_fasi):
     info, t = st.session_state.info, st.session_state.testo
     n_lavori, n_fatti = len(lavori(fasi)), len(st.session_state.risultati)
+    attivo = {"modello": "modello", "testo": "testo", "risultati": "fasi"}[st.session_state.passo]
     with st.sidebar:
+        # Il passo in corso ha il bordo blu e un alone
+        mostra_html(f"<style>.st-key-passo_lato_{attivo} {{border-color: rgba(76,154,255,0.55) !important; "
+                    f"box-shadow: 0 0 0 1px rgba(76,154,255,0.25), 0 8px 24px rgba(76,154,255,0.12) !important;}}"
+                    f".st-key-passo_lato_{attivo} .passo-num:not(.fatto) {{background: var(--blu); color: #fff; "
+                    f"border-color: var(--blu); box-shadow: 0 0 0 4px rgba(76,154,255,0.18);}}</style>")
         mostra_html(f"<div class='marchio'>{svg_marchio()}<div><div class='marchio-nome'>Mamba<span>·</span>Modi</div>"
                     f"<div class='marchio-sotto'>analisi di poli e stabilità</div></div></div>")
         with st.container(key="passo_lato_modello"):
-            titolo_passo(st.empty(), 1, "Modello", "pronto" if info else "da caricare", "ok" if info else "attesa")
+            titolo_passo(st.empty(), 1, "Modello", "pronto" if info else "da caricare", "ok" if info else "attesa",
+                         fatto=info is not None and attivo != "modello", sopra="Passo 1")
             if info:
                 riga_stato(info["nome"], f"{DISPOSITIVI[st.session_state.dispositivo]} · FP32")
                 st.button("Cambia modello", width="stretch", on_click=vai, args=("modello",),
@@ -496,14 +527,15 @@ def barra_laterale(fasi, errori_fasi):
         with st.container(key="passo_lato_testo"):
             pronto = t is not None and st.session_state.passo == "risultati"
             titolo_passo(st.empty(), 2, "Testo", f"{t['ids'].shape[1]} token" if pronto else "da scegliere",
-                         "ok" if pronto else "attesa")
+                         "ok" if pronto else "attesa", fatto=pronto, sopra="Passo 2")
             if pronto:
                 riga_stato(f"{t['ids'].shape[1]} token", t["fonte"])
                 st.button("Cambia testo", width="stretch", on_click=vai, args=("testo",))
         with st.container(key="passo_lato_fasi"):
             fatte = st.session_state.passo == "risultati"
             stato = f"{n_fatti} di {n_lavori}" if fatte else f"{n_lavori} analisi"
-            titolo_passo(st.empty(), 3, "Fasi", stato, ("ok" if n_fatti == n_lavori else "errore") if fatte else "attesa")
+            titolo_passo(st.empty(), 3, "Fasi", stato, ("ok" if n_fatti == n_lavori else "errore") if fatte else "attesa",
+                         sopra="Passo 3")
             for nome, errore in errori_fasi:
                 st.error(f"Errore nel file fasi/{nome}.py", icon="⚠️")
                 with st.expander("Dettagli"):
@@ -519,12 +551,15 @@ def barra_laterale(fasi, errori_fasi):
         mostra_html("<div class='piede'>Elaborazione locale · nessuna connessione di rete</div>")
 
 
-PASSI = [("01", "Carica il modello", "Dalla cartella dei modelli scaricati. Il programma lo carica in FP32 "
-          "e controlla che sia analizzabile."),
-         ("02", "Scegli il testo", "Il testo di prova, un testo incollato o un file .txt: serve alle fasi che "
-          "fanno leggere il modello."),
-         ("03", "Leggi i risultati", "Tutte le fasi vengono eseguite insieme; si sfogliano da un menu e si "
-          "salvano in Excel solo se lo chiedi.")]
+PASSI = [("01", "Carica il modello", "Scegli un modello Mamba-1 dalla cartella dei modelli scaricati. Viene caricato "
+          "<b>in FP32</b> su GPU o CPU e verificato: architettura, tokenizer, presenza di A_log, x_proj e dt_proj, "
+          "valori finiti e una prova di lettura."),
+         ("02", "Scegli il testo", "Testo di prova, incollato o da file .txt, diviso in token fino al limite che imposti. "
+          "Le fasi <b>2a, 2b, 3b e 3c</b> lo fanno leggere al modello per misurare il passo Δ, che dipende "
+          "dall'input; <b>1 e 3a</b> usano solo i pesi."),
+         ("03", "Leggi i risultati", "Tutte le fasi girano in fila, in ogni variante (<b>FP32, FP16, BF16</b>), con una "
+          "sola barra. Poi scegli fase e formato da un menu: riquadri riassuntivi, grafici e tabella per strato. "
+          "L'Excel si salva <b>solo se lo chiedi</b>.")]
 
 
 # Passo ①: scelta e caricamento del modello

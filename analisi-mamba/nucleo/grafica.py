@@ -2,25 +2,27 @@ import math
 
 import plotly.graph_objects as go
 
-# Palette comune a tutte le fasi: blu per i dati, grigi caldi per assi e griglia, rosso/verde per gli stati
-BLU = "#2a78d6"
-BLU_CHIARO = "#86b6ef"
-BLU_TENUE = "rgba(42, 120, 214, 0.14)"
-ARANCIO = "#eb6834"
-ROSSO_STATO = "#d03b3b"
-ROSSO_TENUE = "rgba(208, 59, 59, 0.08)"
-VERDE_STATO = "#0ca30c"
-GRIGIO_ZONA = "rgba(137, 135, 129, 0.13)"
+# Palette comune a tutte le fasi, per sfondo scuro: blu per i dati, grigi freddi per assi e griglia, rosso/verde per gli stati
+BLU = "#4c9aff"
+BLU_CHIARO = "#8cc2ff"
+BLU_TENUE = "rgba(76, 154, 255, 0.18)"
+ARANCIO = "#ff8a4c"
+ROSSO_STATO = "#ff6b6b"
+ROSSO_TENUE = "rgba(255, 107, 107, 0.12)"
+VERDE_STATO = "#3ccf73"
+GRIGIO_ZONA = "rgba(255, 255, 255, 0.06)"
 
-INCHIOSTRO = "#0b0b0b"
-INCHIOSTRO_2 = "#52514e"
-TENUE = "#898781"
-GRIGLIA = "#ebeae4"
-ASSE = "#c3c2b7"
-SUPERFICIE = "#ffffff"
+INCHIOSTRO = "#e6ecf5"
+INCHIOSTRO_2 = "#a9b5c9"
+TENUE = "#6f7e97"
+GRIGLIA = "#1f2b42"
+ASSE = "#33425e"
+SUPERFICIE = "#111a2c"
+SUPERFICIE_2 = "#17223a"
 
-SCALA_BLU = [[0.0, "#eef4fc"], [0.15, "#cde2fb"], [0.3, "#9ec5f4"], [0.45, "#6da7ec"],
-             [0.6, "#3987e5"], [0.75, "#256abf"], [0.9, "#184f95"], [1.0, "#0d366b"]]
+# Dal colore dello sfondo (valori bassi) al blu chiarissimo (valori alti)
+SCALA_BLU = [[0.0, "#111a2c"], [0.15, "#13284a"], [0.3, "#173b6e"], [0.45, "#1f5296"],
+             [0.6, "#2f6dc2"], [0.75, "#4c9aff"], [0.9, "#8cc2ff"], [1.0, "#cfe4ff"]]
 
 CARATTERE = '"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif'
 MONO = '"Cascadia Code", "JetBrains Mono", Consolas, monospace'
@@ -53,7 +55,7 @@ def nuova_figura(asse_x, asse_y, log_y=False, altezza=420, hover_unificato=True)
         plot_bgcolor=SUPERFICIE,
         font=dict(family=CARATTERE, size=13, color=INCHIOSTRO_2),
         hovermode="x unified" if hover_unificato else "closest",
-        hoverlabel=dict(bgcolor="white", bordercolor=BLU_CHIARO, font=dict(family=CARATTERE, color=INCHIOSTRO)),
+        hoverlabel=dict(bgcolor=SUPERFICIE_2, bordercolor=BLU_CHIARO, font=dict(family=CARATTERE, color=INCHIOSTRO)),
         legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0,
                     font=dict(color=INCHIOSTRO_2), bgcolor="rgba(0,0,0,0)"),
         bargap=0.12,
