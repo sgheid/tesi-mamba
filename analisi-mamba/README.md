@@ -49,6 +49,7 @@ fasi/             una fase per file: ogni file con FASE = Fase(...) diventa una 
   fase1_poli_continui.py
   fase2a_delta.py
   fase2b_poli_discreti.py
+  fase3a_poli_continui_arrotondati.py   Fase 3: pesi in FP16/BF16, ricorrenza in FP32
   _modello_nuova_fase.py   modello da copiare (ignorato: inizia con "_")
 ```
 
@@ -63,7 +64,12 @@ fasi/             una fase per file: ogni file con FASE = Fase(...) diventa una 
 
 ## Note
 
-- Tutte le misure sono in FP32, con riferimento esatto in FP64 per il margine 1 − ā.
+- Le Fasi 1 e 2 sono in FP32, con riferimento esatto in FP64 per il margine 1 − ā.
+- La Fase 3 confronta con la baseline FP32 una copia del modello con i pesi in FP16 o BF16, letta dal disco;
+  il modello FP32 caricato non viene mai modificato. "FP32 (controllo)" deve dare errori esattamente nulli.
+  Sulle GPU Turing (RTX 20xx) BF16 non è nativo: PyTorch lo emula, e il risultato lo indica.
+- `prove/` contiene due script da riga di comando: `prova_delta_modello.py` (Δ ricalcolato = Δ interno
+  del modello in FP32/FP16/BF16) e `riesegui_fasi_1_2.py` (numeri delle Fasi 1-2 da confrontare).
 - GPU e CPU possono dare conteggi di "ā = 1" leggermente diversi: quando si riportano i risultati
   conviene indicare il dispositivo, che compare nel file Excel.
 - Il controllo automatico dei file di Streamlit è spento (`.streamlit/config.toml`), perché

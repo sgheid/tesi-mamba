@@ -29,3 +29,12 @@ def delta_fp32(mixer, ts):
 
 def delta_fp64(mixer, ts):
     return _delta(mixer, ts, torch.float64)
+
+
+# Delta nel formato del modello, con le stesse operazioni di transformers (percorso PyTorch):
+# matmul senza bias, bias convertito al formato e sommato, softplus nel formato. Forma (token, canali)
+def delta_modello(mixer, uscita_x_proj):
+    ts = uscita_x_proj[..., :mixer.time_step_rank]
+    t = mixer.dt_proj.weight @ ts.transpose(1, 2)
+    t = t + mixer.dt_proj.bias.float().to(t.dtype)[..., None]
+    return F.softplus(t)[0].T

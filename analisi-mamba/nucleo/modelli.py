@@ -112,18 +112,18 @@ def dispositivi_disponibili():
     return elenco + [("cpu", "CPU")]
 
 
-# Caricamento in FP32 con ripiego per transformers vecchi (torch_dtype) o senza accelerate (device_map)
-def _carica_pesi(percorso, dispositivo):
+# Caricamento (FP32 se non indicato) con ripiego per transformers vecchi (torch_dtype) o senza accelerate (device_map)
+def _carica_pesi(percorso, dispositivo, tipo=torch.float32):
     from transformers import MambaForCausalLM
     carica = lambda **kw: MambaForCausalLM.from_pretrained(percorso, local_files_only=True, **kw)
     try:
-        return carica(dtype=torch.float32, device_map=dispositivo)
+        return carica(dtype=tipo, device_map=dispositivo)
     except (TypeError, ValueError, ImportError):
         pass
     try:
-        model = carica(dtype=torch.float32)
+        model = carica(dtype=tipo)
     except TypeError:
-        model = carica(torch_dtype=torch.float32)
+        model = carica(torch_dtype=tipo)
     return model.to(dispositivo)
 
 
