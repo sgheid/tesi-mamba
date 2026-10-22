@@ -11,10 +11,6 @@ baseRadius = "0.6rem"
 borderColor = "#22304a"
 showWidgetBorder = true
 
-[theme.sidebar]
-backgroundColor = "#0d1526"
-secondaryBackgroundColor = "#111a2c"
-
 [server]
 headless = false
 # Il file watcher scorre tutto transformers e riempie la console di errori innocui

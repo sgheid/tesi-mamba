@@ -10,7 +10,7 @@ import streamlit as st
 
 from fasi import carica_fasi
 from nucleo import grafica as g
-from nucleo.excel import crea_excel, nome_file, salva_excel
+from nucleo.excel import crea_excel, nome_file, nome_file_unico, salva_excel, salva_excel_unico
 from nucleo.formato import FORMATI, fmt_int
 from nucleo.modelli import carica_e_verifica, cartella_cache_predefinita, dispositivi_disponibili, libera, trova_modelli
 from nucleo.precisione import svuota_cache
@@ -20,8 +20,7 @@ from nucleo.testo import MAX_TOKEN_PREDEFINITO, TESTO_ESEMPIO, prepara
 CARTELLA_APP = os.path.dirname(os.path.abspath(__file__))
 CARTELLA_RISULTATI = os.path.join(CARTELLA_APP, "risultati")
 
-st.set_page_config(page_title="Analisi modi di Mamba", page_icon="〰", layout="wide",
-                   initial_sidebar_state="expanded")
+st.set_page_config(page_title="Analisi modi di Mamba", page_icon="〰", layout="wide")
 
 # Stile della pagina: tema scuro blu notte, numeri in monospazio, griglia da carta millimetrata
 st.markdown("""
@@ -35,18 +34,46 @@ st.markdown("""
   header[data-testid="stHeader"] {background: transparent;}
   h1, h2, h3, h4 {letter-spacing: -0.01em; color: var(--notte);}
 
-  section[data-testid="stSidebar"] {width: 360px !important; background: #0d1526;
-      border-right: 1px solid var(--linea);}
-  .marchio {display: flex; gap: 12px; align-items: center; padding: 14px 16px; margin-bottom: 10px;
-            border-radius: 14px; color: #fff; border: 1px solid rgba(140,194,255,0.18);
-            box-shadow: 0 8px 22px rgba(0,0,0,0.4);
-            background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
-                              linear-gradient(135deg, #0d1f3c 0%, #163e74 100%);
-            background-size: 14px 14px, 14px 14px, auto;}
-  .marchio-nome {font-size: 1.12rem; font-weight: 700; letter-spacing: 0.01em;}
-  .marchio-nome span {color: var(--blu-chiaro); margin: 0 4px;}
-  .marchio-sotto {font-size: 0.74rem; opacity: 0.7; letter-spacing: 0.04em;}
+  /* Timeline in alto, sempre visibile: Modello → Testo → Fasi, ridisegnata mentre il programma lavora */
+  /* Lo sticky va sull'elemento figlio del blocco principale: il contenitore o, se c'è, il suo involucro */
+  .st-key-timeline, [data-testid="stLayoutWrapper"]:has(> .st-key-timeline) {position: sticky; top: 0; z-index: 990;
+                                                                              background: var(--sfondo);}
+  .st-key-timeline {padding: 4px 0 10px 0;}
+  .tl {display: flex; align-items: flex-start; min-height: 112px; background: var(--superficie);
+       border: 1px solid var(--linea); border-radius: 14px; padding: 12px 14px; box-shadow: var(--ombra);}
+  .tl-marchio {display: flex; align-items: center; gap: 10px; align-self: stretch; padding-right: 16px;
+               margin-right: 8px; border-right: 1px solid var(--linea);}
+  .tl-marchio b {display: block; font-size: 1rem; color: var(--notte); letter-spacing: 0.01em;}
+  .tl-marchio b span {color: var(--blu-chiaro); margin: 0 3px;}
+  .tl-marchio small {display: block; font-size: 0.68rem; color: var(--tenue); letter-spacing: 0.04em;}
+  .tl-nodo {flex: 1 1 0; min-width: 0; padding: 6px 10px 8px 10px; border-radius: 10px;}
+  .tl-nodo.fasi {flex: 1.8 1 0;}
+  .tl-nodo.attivo {background: rgba(76,154,255,0.07); box-shadow: inset 0 0 0 1px rgba(76,154,255,0.4);}
+  .tl-testa {display: flex; align-items: center; gap: 9px;}
+  .tl-punto {display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex: none;
+             border-radius: 50%; background: var(--superficie-2); color: var(--tenue); font: 600 0.74rem var(--mono);
+             border: 1px solid #33425e;}
+  .tl-nodo.fatto .tl-punto {background: rgba(60,207,115,0.16); color: var(--verde); border-color: rgba(60,207,115,0.5);}
+  .tl-nodo.corso .tl-punto {background: var(--blu); color: #fff; border-color: var(--blu);
+                            box-shadow: 0 0 0 4px rgba(76,154,255,0.22);}
+  .tl-nodo.errore .tl-punto {background: rgba(255,107,107,0.16); color: var(--rosso); border-color: rgba(255,107,107,0.5);}
+  .tl-tit {font-weight: 650; color: var(--notte); font-size: 0.95rem; flex: 1;}
+  .tl-corpo {margin: 5px 0 0 33px; font-size: 0.8rem; color: var(--testo-2); line-height: 1.45;}
+  .tl-corpo > div:not(.tl-tacche) {white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+  .tl-corpo b {color: var(--notte); font-weight: 600;}
+  .tl-linea {flex: 0 0 32px; height: 2px; margin-top: 18px; border-radius: 2px; background: var(--linea);}
+  .tl-linea.fatta {background: linear-gradient(90deg, var(--verde), rgba(60,207,115,0.4));}
+  .tl-tacche {display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 2px 0 4px 0;}
+  .tl-gruppo {display: inline-flex; align-items: center; gap: 3px;}
+  .tl-gruppo i {font: 600 0.68rem var(--mono); font-style: normal; color: var(--tenue); margin-right: 2px;}
+  .tl-tacca {width: 14px; height: 10px; border-radius: 3px; background: rgba(255,255,255,0.06);
+             border: 1px solid #33425e;}
+  .tl-tacca.ok {background: var(--verde); border-color: var(--verde);}
+  .tl-tacca.errore {background: var(--rosso); border-color: var(--rosso);}
+  .tl-tacca.corso {background: var(--blu); border-color: var(--blu-chiaro); box-shadow: 0 0 0 3px rgba(76,154,255,0.3);}
+  .tl-barra {height: 4px; border-radius: 2px; background: rgba(255,255,255,0.08); margin-top: 6px; overflow: hidden;}
+  .tl-barra div {height: 100%; background: linear-gradient(90deg, var(--blu), var(--blu-chiaro));}
+  @media (max-width: 900px) {.tl-marchio div {display: none;}}
 
   [class*="st-key-passo_"] {background: var(--superficie); border: 1px solid var(--linea); border-radius: 14px;
                             padding: 14px 14px 12px 14px; box-shadow: var(--ombra);}
@@ -65,25 +92,8 @@ st.markdown("""
   .chip.ok {background: rgba(60,207,115,0.14); color: #7ee2a3;}
   .chip.errore {background: rgba(255,107,107,0.14); color: #ff9b9b;}
   .chip.codice {background: rgba(76,154,255,0.16); color: var(--blu-chiaro);}
-  .riga-stato {display: flex; gap: 10px; align-items: flex-start; background: var(--superficie-2);
-               border: 1px solid var(--linea); border-radius: 10px; padding: 8px 10px; font-size: 0.84rem;
-               color: var(--testo-2); line-height: 1.35;}
-  .riga-stato b {color: var(--notte);}
-  .riga-stato .punto {width: 8px; height: 8px; border-radius: 50%; background: var(--verde); margin-top: 5px;
-                      box-shadow: 0 0 0 3px rgba(60,207,115,0.18), 0 0 8px rgba(60,207,115,0.5); flex: none;}
-  .piede {font-size: 0.72rem; color: var(--tenue); text-align: center; margin-top: 10px; padding-top: 12px;
+  .piede {font-size: 0.72rem; color: var(--tenue); text-align: center; margin-top: 28px; padding-top: 12px;
           letter-spacing: 0.03em; border-top: 1px solid var(--linea);}
-
-  /* Barra laterale: i tre passi come una procedura verticale, uniti da una linea tra i numeri */
-  [class*="st-key-passo_lato_"] {position: relative; overflow: visible; background: rgba(17,26,44,0.6);
-                                 box-shadow: none; padding: 14px 16px 12px 16px; border-radius: 12px;
-                                 transition: border-color 0.15s ease, box-shadow 0.15s ease;}
-  [class*="st-key-passo_lato_"]:not(.st-key-passo_lato_fasi)::after {content: ""; position: absolute; left: 29px;
-      bottom: -18px; width: 2px; height: 18px; background: linear-gradient(var(--linea), #2c3d5c);}
-  [class*="st-key-passo_lato_"] button {min-height: 2rem; padding: 0.2rem 0.75rem; font-size: 0.84rem;
-                                        background: transparent; border: 1px solid var(--linea); color: var(--testo-2);}
-  [class*="st-key-passo_lato_"] button:hover:not(:disabled) {border-color: var(--blu); color: var(--blu-chiaro);
-                                                             background: rgba(76,154,255,0.08);}
 
   .hero {position: relative; overflow: hidden; display: flex; justify-content: space-between; align-items: center;
          gap: 20px; color: #fff; border-radius: 18px; padding: 26px 30px; margin-bottom: 18px;
@@ -184,11 +194,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Stato della sessione: passo della procedura (modello → testo → risultati) e risultati in memoria
+# Stato della sessione: passo della procedura (modello → testo → risultati), risultati in memoria e orari
+# della timeline (modello, testo, fasi_inizio, fasi_fine)
 DISPOSITIVI = dict(dispositivi_disponibili())
 PREDEFINITI = dict(cartella=cartella_cache_predefinita(), model=None, tok=None, info=None, controlli=[],
                    dispositivo=next(iter(DISPOSITIVI)), testo=None, passo="modello",
-                   risultati={}, errori={}, esito_salvataggio=None, messaggio=None)
+                   risultati={}, errori={}, esito_salvataggio=None, messaggio=None, orari={})
 for chiave, valore in PREDEFINITI.items():
     st.session_state.setdefault(chiave, valore)
 
@@ -263,15 +274,27 @@ def vai(passo):
     st.session_state.passo = passo
 
 
+def ricarica_fasi():
+    carica_fasi(ricarica=True)
+    svuota_risultati()
+    if st.session_state.passo == "risultati":
+        st.session_state.passo = "testo"
+
+
+# Un modello nuovo azzera anche il testo: i suoi token vengono dal tokenizer del modello precedente
 def carica_modello(modello, dispositivo):
     if st.session_state.model is not None:
         st.session_state.update(model=None, tok=None, info=None)
         libera()
+    st.session_state.update(testo=None, controlli=[])
     svuota_risultati()
     svuota_cache()
-    with st.spinner(f"Carico e verifico {modello.nome}..."):
-        model, tok, info, controlli = carica_e_verifica(modello, dispositivo)
+    model, tok, info, controlli = carica_e_verifica(
+        modello, dispositivo,
+        lambda superati, prossimo: disegna_timeline(("modello", modello.nome, superati, prossimo)))
     st.session_state.update(model=model, tok=tok, info=info, controlli=controlli, dispositivo=dispositivo)
+    st.session_state.orari["modello"] = datetime.now()
+    disegna_timeline()
 
 
 # Un testo nuovo rende inutili i passaggi a bassa precisione in cache (Fasi 2 e 3)
@@ -280,6 +303,8 @@ def imposta_testo(grezzo, fonte, max_token):
     ids, token, testo, n_originali = prepara(st.session_state.tok, grezzo, st.session_state.dispositivo, max_token)
     st.session_state.testo = dict(grezzo=grezzo, fonte=fonte, max_token=max_token, ids=ids, token=token,
                                   testo=testo, n_originali=n_originali)
+    st.session_state.orari["testo"] = datetime.now()
+    disegna_timeline()
 
 
 # Ogni fase con tutte le combinazioni dei suoi parametri (es. 3a in FP16, BF16 e FP32 controllo)
@@ -327,17 +352,18 @@ def esegui_fase(fase, parametri, avanzamento):
     return ris, None
 
 
-# Tutte le fasi in fila, con una sola barra di avanzamento; un errore non ferma le fasi successive
+# Tutte le fasi in fila, seguite nella timeline; un errore non ferma le fasi successive
 def esegui_tutte(fasi):
     svuota_risultati()
-    elenco = lavori(fasi)
-    barra = st.progress(0.0, text="Avvio delle fasi...")
-    for k, (fase, parametri) in enumerate(elenco):
-        etichetta = f"{descrivi_lavoro(fase, parametri)} ({k + 1} di {len(elenco)})"
+    st.session_state.orari["fasi_inizio"] = datetime.now()
+    for k, (fase, parametri) in enumerate(lavori(fasi)):
+        # Al più un ridisegno ogni 0,15 s: le fasi chiamano l'avanzamento anche a ogni strato
+        ultimo = [0.0]
 
-        def avanzamento(f, m="", k=k, etichetta=etichetta):
-            barra.progress(min(max((k + min(max(f, 0.0), 1.0)) / len(elenco), 0.0), 1.0),
-                           text=f"{etichetta}: {m}" if m else etichetta)
+        def avanzamento(f, m="", k=k, ultimo=ultimo):
+            if time.time() - ultimo[0] >= 0.15:
+                ultimo[0] = time.time()
+                disegna_timeline(("fasi", k, min(max(f, 0.0), 1.0), m))
 
         avanzamento(0.0)
         ris, errore = esegui_fase(fase, parametri, avanzamento)
@@ -345,19 +371,32 @@ def esegui_tutte(fasi):
             st.session_state.risultati[chiave(fase, parametri)] = ris
         else:
             st.session_state.errori[chiave(fase, parametri)] = errore
-    barra.empty()
+    st.session_state.orari["fasi_fine"] = datetime.now()
+    disegna_timeline()
 
 
-def salva(chiavi):
-    salvati, errori = [], []
-    for k in chiavi:
-        ris = st.session_state.risultati[k]
-        try:
-            ris.info["file"] = salva_excel(ris, CARTELLA_RISULTATI)
-            salvati.append(ris.info["file"])
-        except OSError as e:
-            errori.append(f"{os.path.basename(nome_file(ris))}: {e}")
-    st.session_state.esito_salvataggio = (salvati, errori)
+def salva_una(k):
+    ris = st.session_state.risultati[k]
+    try:
+        ris.info["file"] = salva_excel(ris, CARTELLA_RISULTATI)
+        st.session_state.esito_salvataggio = ([ris.info["file"]], [])
+    except OSError as e:
+        st.session_state.esito_salvataggio = ([], [f"{os.path.basename(nome_file(ris))}: {e}"])
+
+
+# Tutte le analisi eseguite in un solo file Excel, nell'ordine di esecuzione
+def salva_tutte(fasi):
+    risultati, errori = st.session_state.risultati, st.session_state.errori
+    analisi = [(f, p, risultati.get(chiave(f, p)), errori.get(chiave(f, p))) for f, p in lavori(fasi)
+               if chiave(f, p) in risultati or chiave(f, p) in errori]
+    try:
+        percorso = salva_excel_unico(analisi, CARTELLA_RISULTATI)
+    except OSError as e:
+        st.session_state.esito_salvataggio = ([], [f"{nome_file_unico(analisi)}: {e}"])
+        return
+    for ris in risultati.values():
+        ris.info["file"] = percorso
+    st.session_state.esito_salvataggio = ([percorso], [])
 
 
 # Blocchi di presentazione
@@ -370,9 +409,10 @@ def titolo_passo(segnaposto, numero, titolo, stato, tono, fatto=False, sopra=Non
                         unsafe_allow_html=True)
 
 
-def riga_stato(titolo, sotto):
-    mostra_html(f"<div class='riga-stato'><span class='punto'></span>"
-                f"<div><b>{html_sicuro(titolo)}</b><br>{html_sicuro(sotto)}</div></div>")
+def bottone_ricarica(colonna):
+    colonna.button("↻ Ricarica le fasi", width="stretch", on_click=ricarica_fasi,
+                   help="Rilegge i file in fasi/ dopo averne aggiunto o modificato uno. "
+                        "I risultati in memoria vengono cancellati.")
 
 
 def hero(sopra, titolo, sotto):
@@ -508,51 +548,133 @@ def mostra_risultato(ris, id_vista):
         c2.caption(f"Salvato in `{i['file']}`")
 
 
-# Barra laterale: riepilogo dei tre passi e scorciatoie per tornare indietro
-def barra_laterale(fasi, errori_fasi):
-    info, t = st.session_state.info, st.session_state.testo
-    n_lavori, n_fatti = len(lavori(fasi)), len(st.session_state.risultati)
-    attivo = {"modello": "modello", "testo": "testo", "risultati": "fasi"}[st.session_state.passo]
-    with st.sidebar:
-        # Il passo in corso ha il bordo blu e un alone
-        mostra_html(f"<style>.st-key-passo_lato_{attivo} {{border-color: rgba(76,154,255,0.55) !important; "
-                    f"box-shadow: 0 0 0 1px rgba(76,154,255,0.25), 0 8px 24px rgba(76,154,255,0.12) !important;}}"
-                    f".st-key-passo_lato_{attivo} .passo-num:not(.fatto) {{background: var(--blu); color: #fff; "
-                    f"border-color: var(--blu); box-shadow: 0 0 0 4px rgba(76,154,255,0.18);}}</style>")
-        mostra_html(f"<div class='marchio'>{svg_marchio()}<div><div class='marchio-nome'>Mamba<span>·</span>Modi</div>"
-                    f"<div class='marchio-sotto'>analisi di poli e stabilità</div></div></div>")
-        with st.container(key="passo_lato_modello"):
-            titolo_passo(st.empty(), 1, "Modello", "pronto" if info else "da caricare", "ok" if info else "attesa",
-                         fatto=info is not None and attivo != "modello", sopra="Passo 1")
-            if info:
-                riga_stato(info["nome"], f"{DISPOSITIVI[st.session_state.dispositivo]} · FP32")
-                st.button("Cambia modello", width="stretch", on_click=vai, args=("modello",),
-                          disabled=st.session_state.passo == "modello")
-        with st.container(key="passo_lato_testo"):
-            pronto = t is not None and st.session_state.passo == "risultati"
-            titolo_passo(st.empty(), 2, "Testo", f"{t['ids'].shape[1]} token" if pronto else "da scegliere",
-                         "ok" if pronto else "attesa", fatto=pronto, sopra="Passo 2")
-            if pronto:
-                riga_stato(f"{t['ids'].shape[1]} token", t["fonte"])
-                st.button("Cambia testo", width="stretch", on_click=vai, args=("testo",))
-        with st.container(key="passo_lato_fasi"):
-            fatte = st.session_state.passo == "risultati"
-            stato = f"{n_fatti} di {n_lavori}" if fatte else f"{n_lavori} analisi"
-            titolo_passo(st.empty(), 3, "Fasi", stato, ("ok" if n_fatti == n_lavori else "errore") if fatte else "attesa",
-                         sopra="Passo 3")
-            for nome, errore in errori_fasi:
-                st.error(f"Errore nel file fasi/{nome}.py", icon="⚠️")
-                with st.expander("Dettagli"):
-                    st.code(errore)
-            if st.button("Ricarica le fasi", width="stretch",
-                         help="Rilegge i file in fasi/ dopo averne aggiunto o modificato uno. "
-                              "I risultati in memoria vengono cancellati."):
-                carica_fasi(ricarica=True)
-                svuota_risultati()
-                if st.session_state.passo == "risultati":
-                    st.session_state.passo = "testo"
-                st.rerun()
-        mostra_html("<div class='piede'>Elaborazione locale · nessuna connessione di rete</div>")
+# Timeline in alto: Modello → Testo → Fasi. Si ridisegna nel segnaposto `timeline` (creato nel corpo principale)
+# anche durante il caricamento e l'esecuzione; in_corso descrive il lavoro in atto:
+# ("modello", nome, controlli superati, prossimo controllo) oppure ("fasi", indice, frazione, messaggio)
+N_CONTROLLI = 6
+TONI = {"attesa": "attesa", "corso": "codice", "fatto": "ok", "errore": "errore"}
+
+
+def _durata(secondi):
+    return f"{secondi:.0f} s" if secondi < 60 else f"{int(secondi // 60)} min {secondi % 60:.0f} s"
+
+
+def _ora(nome):
+    ora = st.session_state.orari.get(nome)
+    return f"{ora:%H:%M}" if ora else ""
+
+
+def _barra(frazione):
+    return f"<div class='tl-barra'><div style='width:{100 * min(max(frazione, 0.0), 1.0):.1f}%'></div></div>"
+
+
+# Un nodo: righe sono frammenti HTML già sicuri; sopra e sotto vanno prima e dopo le righe (tacche, barra)
+def _nodo(numero, titolo, stato, chip, righe, attivo, classe="", sopra="", sotto=""):
+    punto = {"fatto": "✓", "errore": "!"}.get(stato, numero)
+    corpo = "".join(f"<div>{r}</div>" for r in righe)
+    return (f"<div class='tl-nodo {classe} {stato}{' attivo' if attivo else ''}'>"
+            f"<div class='tl-testa'><span class='tl-punto'>{punto}</span><span class='tl-tit'>{titolo}</span>"
+            f"<span class='chip {TONI[stato]}'>{html_sicuro(chip)}</span></div>"
+            f"<div class='tl-corpo'>{sopra}{corpo}{sotto}</div></div>")
+
+
+# Ogni _nodo_* restituisce (stato, html)
+def _nodo_modello(in_corso):
+    s = st.session_state
+    attivo = s.passo == "modello"
+    if in_corso and in_corso[0] == "modello":
+        _, nome, superati, prossimo = in_corso
+        return "corso", _nodo(1, "Modello", "corso", f"{superati}/{N_CONTROLLI} controlli",
+                              [f"<b>{html_sicuro(nome)}</b>", f"{html_sicuro(prossimo)}…"], attivo,
+                              sotto=_barra(superati / N_CONTROLLI))
+    if s.info:
+        return "fatto", _nodo(1, "Modello", "fatto", "pronto",
+                              [f"<b>{html_sicuro(s.info['nome'].split('/')[-1])}</b>",
+                               f"{html_sicuro(DISPOSITIVI[s.dispositivo])} · FP32 · {_ora('modello')}",
+                               f"✓ {len(s.controlli)} controlli superati"], attivo)
+    fallito = next((c for c in s.controlli if not c.ok), None)
+    if fallito:
+        return "errore", _nodo(1, "Modello", "errore", "non caricato",
+                               [f"<b>{html_sicuro(fallito.descrizione)}</b>",
+                                f"<span title='{html_sicuro(fallito.dettaglio)}'>{html_sicuro(fallito.dettaglio)}</span>"],
+                               attivo)
+    return "attesa", _nodo(1, "Modello", "attesa", "da caricare",
+                           ["Scegli un modello Mamba-1", "e premi <b>Carica e verifica</b>"], attivo)
+
+
+def _nodo_testo():
+    s, t = st.session_state, st.session_state.testo
+    attivo = s.passo == "testo"
+    if t:
+        n = int(t["ids"].shape[1])
+        troncato = f" su {fmt_int(t['n_originali'])}" if t["n_originali"] > n else ""
+        return "fatto", _nodo(2, "Testo", "fatto", "pronto",
+                              [f"<b>{fmt_int(n)} token</b>{troncato}",
+                               f"{html_sicuro(t['fonte'])} · {_ora('testo')}"], attivo)
+    return "attesa", _nodo(2, "Testo", "attesa", "da scegliere", ["Testo di prova, incollato", "o da file .txt"],
+                           attivo)
+
+
+# Una tacca per analisi, raggruppate per fase; il title dice esito e durata
+def _tacche(elenco, corrente):
+    s = st.session_state
+    gruppi = {}
+    for k, (fase, parametri) in enumerate(elenco):
+        c, nome = chiave(fase, parametri), descrivi_lavoro(fase, parametri)
+        if c in s.risultati:
+            stato, nota = "ok", f"{nome} — ✓ {s.risultati[c].info['durata']:.1f} s"
+        elif c in s.errori:
+            stato, nota = "errore", f"{nome} — non riuscita: {s.errori[c][0]}"
+        elif k == corrente:
+            stato, nota = "corso", f"{nome} — in corso"
+        else:
+            stato, nota = "attesa", nome
+        gruppi.setdefault(fase.codice, []).append(f"<b class='tl-tacca {stato}' title='{html_sicuro(nota)}'></b>")
+    return "<div class='tl-tacche'>" + "".join(
+        f"<span class='tl-gruppo'><i>{html_sicuro(codice)}</i>{''.join(t)}</span>" for codice, t in gruppi.items()
+    ) + "</div>"
+
+
+def _nodo_fasi(fasi, in_corso):
+    s = st.session_state
+    elenco = lavori(fasi)
+    n, n_ok, n_err = len(elenco), len(s.risultati), len(s.errori)
+    attivo = s.passo == "risultati"
+    if in_corso and in_corso[0] == "fasi":
+        _, k, frazione, messaggio = in_corso
+        trascorsi = (datetime.now() - s.orari["fasi_inizio"]).total_seconds()
+        righe = [f"<b>{html_sicuro(descrivi_lavoro(*elenco[k]))}</b>"
+                 + (f": {html_sicuro(messaggio)}" if messaggio else ""),
+                 f"questa analisi {100 * frazione:.0f} % · {_durata(trascorsi)} dall'avvio"]
+        return "corso", _nodo(3, "Fasi", "corso", f"{k + 1} di {n}", righe, attivo, "fasi",
+                              _tacche(elenco, k), _barra((k + frazione) / n))
+    if n_ok or n_err:
+        stato = "errore" if n_err else "fatto"
+        inizio, fine = s.orari.get("fasi_inizio"), s.orari.get("fasi_fine")
+        durata = f" in {_durata((fine - inizio).total_seconds())} · {_ora('fasi_fine')}" if inizio and fine else ""
+        righe = [f"<b>{n_ok} di {n} completate</b>{durata}"]
+        if n_err:
+            righe.append(f"{n_err} non riuscite: passa il mouse sulle tacche rosse")
+        return stato, _nodo(3, "Fasi", stato, f"{n_ok} di {n}", righe, attivo, "fasi", _tacche(elenco, None))
+    return "attesa", _nodo(3, "Fasi", "attesa", f"{n} analisi", ["Partono con <b>Esegui tutte le fasi</b>"], attivo,
+                           "fasi", _tacche(elenco, None))
+
+
+def html_timeline(fasi, in_corso=None):
+    nodi = [_nodo_modello(in_corso), _nodo_testo(), _nodo_fasi(fasi, in_corso)]
+    parti = [f"<div class='tl-marchio'>{svg_marchio()}<div><b>Mamba<span>·</span>Modi</b>"
+             f"<small>analisi di poli e stabilità</small></div></div>"]
+    for k, (stato, codice) in enumerate(nodi):
+        if k:
+            # La linea verso il nodo successivo diventa verde quando il nodo precedente è fatto
+            parti.append(f"<div class='tl-linea{' fatta' if nodi[k - 1][0] == 'fatto' else ''}'></div>")
+        parti.append(codice)
+    return f"<div class='tl'>{''.join(parti)}</div>"
+
+
+# Usa le variabili del corpo principale `timeline` (segnaposto) e `fasi`
+def disegna_timeline(in_corso=None):
+    timeline.markdown(html_timeline(fasi, in_corso), unsafe_allow_html=True)
 
 
 PASSI = [("01", "Carica il modello", "Scegli un modello Mamba-1 dalla cartella dei modelli scaricati. Viene caricato "
@@ -561,10 +683,10 @@ PASSI = [("01", "Carica il modello", "Scegli un modello Mamba-1 dalla cartella d
          ("02", "Scegli il testo", "Testo di prova, incollato o da file .txt, diviso in token fino al limite che imposti. "
           "Le fasi <b>2 (Δ) e 3 (margini)</b> lo fanno leggere al modello per misurare il passo Δ, che dipende "
           "dall'input; la <b>1 (poli continui)</b> usa solo i pesi."),
-         ("03", "Leggi i risultati", "Ogni fase gira <b>solo in FP32</b> e <b>a confronto con FP16 e BF16</b>, con una "
-          "sola barra; Fasi 2 e 3 condividono la copia a bassa precisione. Poi scegli fase e confronto da un menu: "
-          "riquadri, grafici FP32 in blu e formato ridotto in arancione, tabella per strato. "
-          "L'Excel si salva <b>solo se lo chiedi</b>.")]
+         ("03", "Leggi i risultati", "Ogni fase gira <b>solo in FP32</b> e <b>a confronto con FP16 e BF16</b>, seguita "
+          "dal vivo nella timeline in alto; Fasi 2 e 3 condividono la copia a bassa precisione. Poi scegli fase e "
+          "confronto da un menu: riquadri, grafici FP32 in blu e formato ridotto in arancione, tabella per strato. "
+          "L'Excel si salva <b>solo se lo chiedi</b>, anche tutto in un unico file.")]
 
 
 # Passo ①: scelta e caricamento del modello
@@ -657,9 +779,10 @@ def pagina_testo(fasi):
         elenco = lavori(fasi)
         st.caption(f"Verranno eseguite {len(elenco)} analisi: "
                    + ", ".join(descrivi_lavoro(f, p).replace("Fase ", "") for f, p in elenco) + ".")
-        c1, c2 = st.columns([1, 2])
+        c1, c2, c3 = st.columns([1, 1, 2])
         c1.button("← Cambia modello", width="stretch", on_click=vai, args=("modello",))
-        if c2.button("Esegui tutte le fasi →", type="primary", disabled=not pronto, width="stretch"):
+        bottone_ricarica(c2)
+        if c3.button("Esegui tutte le fasi →", type="primary", disabled=not pronto, width="stretch"):
             nome_fonte = {FONTI[0]: "testo di prova", FONTI[1]: "testo incollato"}.get(
                 fonte, f"file {getattr(caricato, 'name', '')}")
             imposta_testo(grezzo.strip(), nome_fonte, int(max_token))
@@ -677,9 +800,10 @@ def pagina_risultati(fasi):
          f"{html_sicuro(DISPOSITIVI[st.session_state.dispositivo])} · {t['ids'].shape[1]} token · "
          f"{html_sicuro(t['fonte'])} · {len(risultati)} analisi completate"
          + (f", {len(errori)} non riuscite" if errori else ""))
-    c1, c2, _ = st.columns([1, 1, 3])
+    c1, c2, c3, _ = st.columns([1, 1, 1, 2])
     c1.button("← Cambia testo", width="stretch", on_click=vai, args=("testo",))
     c2.button("← Cambia modello", width="stretch", on_click=vai, args=("modello",))
+    bottone_ricarica(c3)
     if not eseguite:
         st.warning("Nessuna fase eseguita: torna al testo e premi *Esegui tutte le fasi*.")
         return
@@ -719,14 +843,16 @@ def pagina_risultati(fasi):
                    f"nella cartella `{CARTELLA_RISULTATI}`.")
         c1, c2 = st.columns(2)
         c1.button(f"Salva {descrivi_lavoro(fase, parametri)}", width="stretch", disabled=ris is None,
-                  on_click=salva, args=([k],))
-        c2.button(f"Salva tutte le fasi ({len(risultati)} file)", type="primary", width="stretch",
-                  disabled=not risultati, on_click=salva, args=(list(risultati),))
+                  on_click=salva_una, args=(k,))
+        c2.button(f"Salva tutto in un file Excel ({len(risultati)} analisi)", type="primary", width="stretch",
+                  disabled=not risultati, on_click=salva_tutte, args=(fasi,),
+                  help="Un solo foglio: informazioni comuni, indice e, per ogni analisi, sintesi e tabella per "
+                       "strato. I dati dei grafici restano nell'Excel della singola fase.")
         esito = st.session_state.esito_salvataggio
         if esito:
             salvati, problemi = esito
             if salvati:
-                st.success(f"{len(salvati)} file salvati in `{CARTELLA_RISULTATI}`.")
+                st.success(f"Salvato in `{salvati[0]}`.")
             for p in problemi:
                 st.warning(f"Salvataggio non riuscito: {p}")
 
@@ -736,7 +862,14 @@ if st.session_state.model is None:
     st.session_state.passo = "modello"
 elif st.session_state.passo == "risultati" and st.session_state.testo is None:
     st.session_state.passo = "testo"
-barra_laterale(fasi, errori_fasi)
+timeline = st.container(key="timeline").empty()
+disegna_timeline()
+
+for nome, errore in errori_fasi:
+    st.error(f"Errore nel file fasi/{nome}.py: la fase non compare. Correggi il file e premi *Ricarica le fasi*.",
+             icon="⚠️")
+    with st.expander("Dettagli"):
+        st.code(errore)
 
 if st.session_state.messaggio:
     tipo, testo_msg = st.session_state.messaggio
@@ -744,3 +877,4 @@ if st.session_state.messaggio:
     st.session_state.messaggio = None
 
 {"modello": pagina_modello, "testo": pagina_testo, "risultati": pagina_risultati}[st.session_state.passo](fasi)
+mostra_html("<div class='piede'>Elaborazione locale · nessuna connessione di rete</div>")

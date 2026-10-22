@@ -127,8 +127,9 @@ def _carica_pesi(percorso, dispositivo, tipo=torch.float32):
     return model.to(dispositivo)
 
 
-# Carica il modello dal disco ed esegue i sei controlli: al primo fallito restituisce model = None
-def carica_e_verifica(modello: ModelloLocale, dispositivo: str):
+# Carica il modello dal disco ed esegue i sei controlli: al primo fallito restituisce model = None.
+# avanzamento(superati, prossimo) viene chiamata prima di ogni controllo
+def carica_e_verifica(modello: ModelloLocale, dispositivo: str, avanzamento=lambda superati, prossimo: None):
     from transformers import AutoTokenizer
 
     controlli = []
@@ -141,6 +142,7 @@ def carica_e_verifica(modello: ModelloLocale, dispositivo: str):
         return f"{type(e).__name__}: {e}"
 
     try:
+        avanzamento(0, "Architettura Mamba-1")
         if modello.tipo != "mamba":
             aiuto = (" Mamba-2 ha una A scalare per testa: le fasi sono scritte per Mamba-1."
                      if modello.tipo == "mamba2" else "")
@@ -148,12 +150,14 @@ def carica_e_verifica(modello: ModelloLocale, dispositivo: str):
                               f"config.json indica '{modello.tipo}'.{aiuto}")
         superato("Architettura Mamba-1 (model_type = mamba)")
 
+        avanzamento(1, "Tokenizer")
         try:
             tok = AutoTokenizer.from_pretrained(modello.percorso, local_files_only=True)
         except Exception as e:
             raise _Fallimento("Tokenizer letto dalla cartella", errore(e))
         superato("Tokenizer letto dalla cartella", type(tok).__name__)
 
+        avanzamento(2, "Pesi in FP32")
         t0 = time.time()
         try:
             model = _carica_pesi(modello.percorso, dispositivo).float().eval()
@@ -163,6 +167,7 @@ def carica_e_verifica(modello: ModelloLocale, dispositivo: str):
             raise _Fallimento("Pesi caricati in FP32", errore(e))
         superato("Pesi caricati in FP32", f"in {time.time() - t0:.1f} s")
 
+        avanzamento(3, "Struttura interna")
         try:
             strati = model.backbone.layers
             mancanti = [a for a in ("A_log", "x_proj", "dt_proj", "time_step_rank") if not hasattr(strati[0].mixer, a)]
@@ -172,12 +177,14 @@ def carica_e_verifica(modello: ModelloLocale, dispositivo: str):
             raise _Fallimento("Struttura interna (A_log, x_proj, dt_proj)", "Mancano: " + ", ".join(mancanti))
         superato("Struttura interna (A_log, x_proj, dt_proj)", f"{len(strati)} strati")
 
+        avanzamento(4, "Valori di A_log")
         with torch.no_grad():
             non_finiti = sum(int((~torch.isfinite(l.mixer.A_log)).sum().item()) for l in strati)
         if non_finiti:
             raise _Fallimento("A_log senza NaN o infiniti", f"{non_finiti} valori non finiti")
         superato("A_log senza NaN o infiniti")
 
+        avanzamento(5, "Prova di lettura")
         try:
             ids = tok("Control theory", return_tensors="pt").input_ids.to(dispositivo)
             with torch.no_grad():

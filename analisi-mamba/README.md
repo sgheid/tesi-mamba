@@ -30,7 +30,9 @@ Il browser si apre su `http://localhost:8501`. Per chiudere: `Ctrl+C` nel termin
 
 ## Uso
 
-La procedura è a passi; la barra laterale riassume lo stato e permette di tornare indietro.
+La procedura è a passi. La timeline in cima alla pagina (sempre visibile) riassume modello, testo e fasi e si
+aggiorna mentre il programma lavora: i controlli del modello uno per uno, poi una tacca per ogni analisi, che
+diventa verde o rossa quando finisce (passando il mouse su una tacca si leggono esito e durata).
 
 1. **Modello.** All'apertura si sceglie il modello dalla cartella (predefinita: la cache di Hugging Face,
    `C:\Users\<nome>\.cache\huggingface\hub`) e il dispositivo, poi *Carica e verifica*. Il programma lo
@@ -39,8 +41,11 @@ La procedura è a passi; la barra laterale riassume lo stato e permette di torna
 2. **Testo.** Testo di prova (visibile per intero, fisso per risultati ripetibili), testo incollato o file
    `.txt`. *Esegui tutte le fasi* esegue ogni fase in tutti i valori del parametro **Confronto**.
 3. **Risultati.** Un menu sceglie la fase e il confronto: riquadri di sintesi, grafici con la guida alla lettura,
-   tabella per strato, download in Excel. Niente viene scritto su disco finché non si preme *Salva* (una fase o
-   tutte) nel riquadro in fondo: i file vanno in `risultati/`.
+   tabella per strato, download in Excel. Niente viene scritto su disco finché non si preme *Salva* nel riquadro
+   in fondo: la singola analisi (un file con anche i dati dei grafici) oppure *Salva tutto in un file Excel*. I file
+   vanno in `risultati/`.
+
+*Ricarica le fasi* (nella riga dei pulsanti delle pagine Testo e Risultati) rilegge i file in `fasi/`.
 
 ## Fasi: grandezza × confronto
 
@@ -71,8 +76,13 @@ un caso limite, ha il suo parametro **Formato della ricorrenza** (FP16 / BF16).
   confronto usano come riferimento il Δ del modello FP32 con le operazioni di transformers. Sul 130M i due
   riferimenti danno gli stessi numeri; su un altro modello o dispositivo i poli su 1 FP32 delle due colonne
   potrebbero differire di poco, solo per questo.
-- Un file Excel per esecuzione: con un confronto le colonne del riferimento e del confronto stanno nella stessa
-  tabella, e il confronto è nel nome del file (es. `..._Fase3_FP32-vs-FP16.xlsx`) e nelle informazioni.
+- Excel della singola analisi: con un confronto le colonne del riferimento e del confronto stanno nella stessa
+  tabella, e il confronto è nel nome del file (es. `..._Fase3_FP32-vs-FP16.xlsx`) e nelle informazioni; un foglio
+  in più per i dati di ogni grafico.
+- Excel di tutte le analisi (`..._Tutte-le-fasi.xlsx`): un solo foglio con le informazioni comuni una volta sola,
+  un indice con i collegamenti alle sezioni e, per ogni fase, una fascia di titolo, poi per ogni confronto sintesi e
+  tabella per strato, e la legenda delle colonne alla fine della fase. Le fasi si possono comprimere (struttura di
+  Excel). I dati dei grafici non ci sono: restano nell'Excel della singola analisi.
 
 ## Struttura
 
@@ -99,7 +109,7 @@ prove/            script da riga di comando (vedi Note)
 3. Se servono scelte dell'utente, aggiungerle in `parametri=[Parametro(...)]`: compaiono da sole come menu
    sopra i risultati. Per un confronto FP32 contro FP16/BF16 si riusa `nucleo.confronto.PARAMETRO` con le
    funzioni dello stesso modulo, come nelle Fasi 1–4.
-4. Premere *Ricarica le fasi* nella barra laterale. Se si modifica `nucleo/`, bisogna riavviare l'app.
+4. Premere *Ricarica le fasi*. Se si modifica `nucleo/`, bisogna riavviare l'app.
 
 ## Note
 
