@@ -142,7 +142,12 @@ LIVELLI = ("B1", "B2")
 
 
 def _modulo_mamba():
+    import transformers
     from transformers.models.mamba import modeling_mamba
+    if not hasattr(modeling_mamba, "mamba_selective_scan"):
+        raise RuntimeError(f"transformers {transformers.__version__} non ha modeling_mamba.mamba_selective_scan: la "
+                           "ricorrenza simulata richiede transformers 5.x ed è verificata con la 5.17.0 "
+                           "(vedi requirements-lock.txt).")
     return modeling_mamba
 
 

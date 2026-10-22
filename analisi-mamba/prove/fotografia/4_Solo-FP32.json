@@ -1,0 +1,73 @@
+{
+ "titolo": "Fase 4 - Uscita del modello: NLL e perplexity",
+ "note_formato": "FP32, NLL in FP64 · dispositivo: cpu",
+ "righe": [
+  {
+   "strato": "0–63",
+   "da": 0,
+   "a": 63,
+   "nll": 3.2754883731497326,
+   "non_finite": 0,
+   "ppl": 26.456142795858064
+  },
+  {
+   "strato": "64–127",
+   "da": 64,
+   "a": 127,
+   "nll": 2.7697673310622726,
+   "non_finite": 0,
+   "ppl": 15.954921363296895
+  },
+  {
+   "strato": "128–191",
+   "da": 128,
+   "a": 191,
+   "nll": 3.511046100875374,
+   "non_finite": 0,
+   "ppl": 33.483276354208876
+  },
+  {
+   "strato": "192–209",
+   "da": 192,
+   "a": 209,
+   "nll": 3.3176449851726746,
+   "non_finite": 0,
+   "ppl": 27.595286666108972
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Perplexity",
+   "valore": "24.4533",
+   "nota": "exp(NLL media) su 210 predizioni",
+   "stato": null
+  },
+  {
+   "etichetta": "NLL media",
+   "valore": "3.1968 nat",
+   "nota": "−log P(token vero), media sul testo",
+   "stato": null
+  },
+  {
+   "etichetta": "Blocco più difficile",
+   "valore": "128–191",
+   "nota": "NLL media 3.511 nat",
+   "stato": null
+  },
+  {
+   "etichetta": "Logit non finiti",
+   "valore": "0",
+   "nota": "nessuno",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Dispositivo",
+   "valore": "cpu",
+   "nota": "logit in FP32, log_softmax e NLL in FP64",
+   "stato": null
+  }
+ ],
+ "evidenzia": {
+  "128–191": "NLL media più alta"
+ }
+}

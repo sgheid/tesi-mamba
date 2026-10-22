@@ -85,7 +85,7 @@ def _info_modello(info):
         ("Commit dei pesi", info.get("commit", "")),
         ("Struttura", info.get("struttura", "")),
         ("Dispositivo", info.get("dispositivo", "")),
-    ]
+    ] + list(info.get("versioni", {}).items())
 
 
 def _info_testo(info):

@@ -1,0 +1,9 @@
+{
+ "PyTorch": "2.14.1+cu126",
+ "transformers": "5.17.0",
+ "numpy": "2.5.3",
+ "dispositivo": "cpu",
+ "modello": "state-spaces/mamba-130m-hf",
+ "commit": "1e76775f62",
+ "token": 211
+}

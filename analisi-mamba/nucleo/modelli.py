@@ -211,6 +211,12 @@ def carica_e_verifica(modello: ModelloLocale, dispositivo: str, avanzamento=lamb
     return model, tok, info, controlli
 
 
+# Versioni da riportare con i risultati (torch include la build CUDA, es. 2.14.1+cu126)
+def versioni():
+    import transformers
+    return {"PyTorch": torch.__version__, "transformers": transformers.__version__}
+
+
 def libera():
     gc.collect()
     if torch.cuda.is_available():

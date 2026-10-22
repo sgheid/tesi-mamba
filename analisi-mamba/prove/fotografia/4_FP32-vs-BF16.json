@@ -1,0 +1,118 @@
+{
+ "titolo": "Fase 4 - Uscita del modello, FP32 contro BF16",
+ "note_formato": "pesi in BF16, ricorrenza in FP32; NLL e KL in FP64 · dispositivo: cpu",
+ "righe": [
+  {
+   "strato": "0–63",
+   "da": 0,
+   "a": 63,
+   "nll": 3.2754883731497326,
+   "non_finite": 0,
+   "nll_r": 3.243130755265485,
+   "dnll": -0.032357617884247875,
+   "kl": 0.0042293931536829706,
+   "top1": 0.984375,
+   "ppl": 26.456142795858064,
+   "ppl_r": 25.613786847879652
+  },
+  {
+   "strato": "64–127",
+   "da": 64,
+   "a": 127,
+   "nll": 2.7697673310622726,
+   "non_finite": 0,
+   "nll_r": 2.7651248158979067,
+   "dnll": -0.004642515164366152,
+   "kl": 0.00465529714793698,
+   "top1": 0.9375,
+   "ppl": 15.954921363296895,
+   "ppl_r": 15.881022070943134
+  },
+  {
+   "strato": "128–191",
+   "da": 128,
+   "a": 191,
+   "nll": 3.511046100875374,
+   "non_finite": 0,
+   "nll_r": 3.5265191218498932,
+   "dnll": 0.015473020974519358,
+   "kl": 0.004936531040859426,
+   "top1": 0.953125,
+   "ppl": 33.483276354208876,
+   "ppl_r": 34.005392733571895
+  },
+  {
+   "strato": "192–209",
+   "da": 192,
+   "a": 209,
+   "nll": 3.3176449851726746,
+   "non_finite": 0,
+   "nll_r": 3.254707522581411,
+   "dnll": -0.06293746259126386,
+   "kl": 0.003593732278260851,
+   "top1": 0.9444444444444444,
+   "ppl": 27.595286666108972,
+   "ppl_r": 25.912034740562547
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "BF16",
+   "nota": "modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Perplexity",
+   "valore": "24.4533 → 24.1627",
+   "nota": "FP32 → BF16 · differenza relativa −1.19 % · su 210 predizioni",
+   "stato": null
+  },
+  {
+   "etichetta": "KL media",
+   "valore": "4.52e-03",
+   "nota": "nat per posizione · mediana 3.37e-03 · P99 1.90e-02",
+   "stato": null
+  },
+  {
+   "etichetta": "KL massima",
+   "valore": "3.03e-02",
+   "nota": "posizione 143, che predice ' the'",
+   "stato": null
+  },
+  {
+   "etichetta": "Accordo top-1",
+   "valore": "95.7 %",
+   "nota": "9 posizioni con un token più probabile diverso",
+   "stato": null
+  },
+  {
+   "etichetta": "ΔNLL media",
+   "valore": "-1.20e-02 nat",
+   "nota": "il formato ridotto dà in media più probabilità al token vero",
+   "stato": null
+  },
+  {
+   "etichetta": "KL: primo → ultimo quarto del testo",
+   "valore": "4.49e-03 → 4.02e-03",
+   "nota": "differenza relativa −10.4 %",
+   "stato": null
+  },
+  {
+   "etichetta": "Logit non finiti",
+   "valore": "0",
+   "nota": "nessuno",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Dispositivo",
+   "valore": "cpu",
+   "nota": "logit nel formato dei pesi, log_softmax, NLL e KL in FP64",
+   "stato": null
+  }
+ ],
+ "evidenzia": {
+  "128–191": "KL media più alta",
+  "64–127": "accordo top-1 più basso"
+ }
+}

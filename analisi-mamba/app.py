@@ -12,7 +12,8 @@ from fasi import carica_fasi
 from nucleo import grafica as g
 from nucleo.excel import crea_excel, nome_file, nome_file_unico, salva_excel, salva_excel_unico
 from nucleo.formato import FORMATI, fmt_int
-from nucleo.modelli import carica_e_verifica, cartella_cache_predefinita, dispositivi_disponibili, libera, trova_modelli
+from nucleo.modelli import (carica_e_verifica, cartella_cache_predefinita, dispositivi_disponibili, libera,
+                            trova_modelli, versioni)
 from nucleo.precisione import svuota_cache
 from nucleo.risultato import Contesto
 from nucleo.testo import MAX_TOKEN_PREDEFINITO, TESTO_ESEMPIO, prepara
@@ -347,7 +348,7 @@ def esegui_fase(fase, parametri, avanzamento):
         modello=info["nome"], percorso=info["percorso"], commit=info["commit"],
         struttura=f"{info['strati']} strati × {info['canali']} canali × {info['stati']} stati",
         dispositivo=nome_disp, data=datetime.now(), durata=time.time() - t0, parametri=parametri,
-        testo=t.get("testo"), fonte_testo=t.get("fonte"),
+        testo=t.get("testo"), fonte_testo=t.get("fonte"), versioni=versioni(),
         n_token=int(t["ids"].shape[1]) if t else None)
     return ris, None
 
@@ -497,7 +498,8 @@ def intestazione_modello(info):
         + "</div>")
     with st.expander("Verifica del modello superata", icon="✅"):
         mostra_controlli(st.session_state.controlli)
-        st.caption(f"Cartella: `{info['percorso']}` · commit {info['commit']} · rango di Δ: {info['rank_delta']}")
+        st.caption(f"Cartella: `{info['percorso']}` · commit {info['commit']} · rango di Δ: {info['rank_delta']} · "
+                   + " · ".join(f"{nome} {v}" for nome, v in versioni().items()))
 
 
 VISTE = ["📈 Grafici", "🧮 Tabella per strato", "📝 Testo analizzato"]

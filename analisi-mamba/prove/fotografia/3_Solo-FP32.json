@@ -1,0 +1,373 @@
+{
+ "titolo": "Fase 3 - Poli discreti  abar = exp(Delta * a)",
+ "note_formato": "FP32, con riferimento esatto in FP64 per il margine 1 - abar",
+ "righe": [
+  {
+   "strato": 0,
+   "margine": 1.4236481363978858e-09,
+   "memoria": 702420755.8267872,
+   "su_1": 7706,
+   "perc_1": 0.0014860566005134282,
+   "in_0": 68943,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 7706,
+   "su_1_congelati": 0,
+   "su_1_integratori": 7706
+  },
+  {
+   "strato": 1,
+   "margine": 1.5875595977170304e-08,
+   "memoria": 62989761.23088778,
+   "su_1": 39,
+   "perc_1": 7.520919727488151e-06,
+   "in_0": 345825,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 39,
+   "su_1_congelati": 0,
+   "su_1_integratori": 39
+  },
+  {
+   "strato": 2,
+   "margine": 7.327726726166495e-09,
+   "memoria": 136467971.22347802,
+   "su_1": 152,
+   "perc_1": 2.931230252764613e-05,
+   "in_0": 450404,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 152,
+   "su_1_congelati": 0,
+   "su_1_integratori": 152
+  },
+  {
+   "strato": 3,
+   "margine": 1.07150532967327e-06,
+   "memoria": 933266.4731634383,
+   "su_1": 0,
+   "perc_1": 0.0,
+   "in_0": 177700,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 0,
+   "su_1_congelati": 0,
+   "su_1_integratori": 0
+  },
+  {
+   "strato": 4,
+   "margine": 9.627834532601265e-09,
+   "memoria": 103865515.82433753,
+   "su_1": 430,
+   "perc_1": 8.292296109794628e-05,
+   "in_0": 158179,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 430,
+   "su_1_congelati": 0,
+   "su_1_integratori": 430
+  },
+  {
+   "strato": 5,
+   "margine": 4.887109822337818e-08,
+   "memoria": 20461991.57279498,
+   "su_1": 0,
+   "perc_1": 0.0,
+   "in_0": 186441,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 0,
+   "su_1_congelati": 0,
+   "su_1_integratori": 0
+  },
+  {
+   "strato": 6,
+   "margine": 7.478815921644578e-10,
+   "memoria": 1337110059.2352884,
+   "su_1": 652,
+   "perc_1": 0.00012573435031595575,
+   "in_0": 171795,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 652,
+   "su_1_congelati": 0,
+   "su_1_integratori": 652
+  },
+  {
+   "strato": 7,
+   "margine": 5.66620007230821e-09,
+   "memoria": 176485120.0520061,
+   "su_1": 202,
+   "perc_1": 3.895450730647709e-05,
+   "in_0": 145684,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 202,
+   "su_1_congelati": 0,
+   "su_1_integratori": 202
+  },
+  {
+   "strato": 8,
+   "margine": 5.1305994734145823e-08,
+   "memoria": 19490899.751222778,
+   "su_1": 0,
+   "perc_1": 0.0,
+   "in_0": 205346,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 0,
+   "su_1_congelati": 0,
+   "su_1_integratori": 0
+  },
+  {
+   "strato": 9,
+   "margine": 1.2264891146613265e-08,
+   "memoria": 81533540.57904807,
+   "su_1": 5,
+   "perc_1": 9.642204778830963e-07,
+   "in_0": 166679,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 5,
+   "su_1_congelati": 0,
+   "su_1_integratori": 5
+  },
+  {
+   "strato": 10,
+   "margine": 4.2058270480892915e-10,
+   "memoria": 2377653642.353887,
+   "su_1": 28,
+   "perc_1": 5.39963467614534e-06,
+   "in_0": 113800,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 28,
+   "su_1_congelati": 0,
+   "su_1_integratori": 28
+  },
+  {
+   "strato": 11,
+   "margine": 1.0076633394655874e-08,
+   "memoria": 99239494.06855948,
+   "su_1": 274,
+   "perc_1": 5.283928218799368e-05,
+   "in_0": 114262,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 274,
+   "su_1_congelati": 0,
+   "su_1_integratori": 274
+  },
+  {
+   "strato": 12,
+   "margine": 1.2440412922541509e-09,
+   "memoria": 803831839.2053063,
+   "su_1": 1291,
+   "perc_1": 0.0002489617273894155,
+   "in_0": 85644,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 1291,
+   "su_1_congelati": 0,
+   "su_1_integratori": 1291
+  },
+  {
+   "strato": 13,
+   "margine": 5.248786856083717e-09,
+   "memoria": 190520214.94089228,
+   "su_1": 40,
+   "perc_1": 7.71376382306477e-06,
+   "in_0": 133058,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 40,
+   "su_1_congelati": 0,
+   "su_1_integratori": 40
+  },
+  {
+   "strato": 14,
+   "margine": 1.699487658509896e-09,
+   "memoria": 588412628.3545924,
+   "su_1": 207,
+   "perc_1": 3.991872778436019e-05,
+   "in_0": 70115,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 207,
+   "su_1_congelati": 0,
+   "su_1_integratori": 207
+  },
+  {
+   "strato": 15,
+   "margine": 5.929485885321324e-10,
+   "memoria": 1686486854.5779653,
+   "su_1": 3953,
+   "perc_1": 0.000762312709814376,
+   "in_0": 242478,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 3953,
+   "su_1_congelati": 0,
+   "su_1_integratori": 3953
+  },
+  {
+   "strato": 16,
+   "margine": 4.808157121667271e-12,
+   "memoria": 207979892232.23245,
+   "su_1": 10099,
+   "perc_1": 0.001947532521228278,
+   "in_0": 22618,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 10099,
+   "su_1_congelati": 0,
+   "su_1_integratori": 10099
+  },
+  {
+   "strato": 17,
+   "margine": 1.8365758834641466e-11,
+   "memoria": 54449152305.85526,
+   "su_1": 25018,
+   "perc_1": 0.004824573583135861,
+   "in_0": 7019,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 25018,
+   "su_1_congelati": 0,
+   "su_1_integratori": 25018
+  },
+  {
+   "strato": 18,
+   "margine": 2.853472219040438e-09,
+   "memoria": 350450231.5905773,
+   "su_1": 824,
+   "perc_1": 0.00015890353475513428,
+   "in_0": 149741,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 824,
+   "su_1_congelati": 0,
+   "su_1_integratori": 824
+  },
+  {
+   "strato": 19,
+   "margine": 4.347726686501149e-08,
+   "memoria": 23000525.84043074,
+   "su_1": 0,
+   "perc_1": 0.0,
+   "in_0": 156796,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 0,
+   "su_1_congelati": 0,
+   "su_1_integratori": 0
+  },
+  {
+   "strato": 20,
+   "margine": 4.356612407391085e-09,
+   "memoria": 229536141.04010695,
+   "su_1": 24,
+   "perc_1": 4.628258293838863e-06,
+   "in_0": 106484,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 24,
+   "su_1_congelati": 0,
+   "su_1_integratori": 24
+  },
+  {
+   "strato": 21,
+   "margine": 9.611368620014448e-08,
+   "memoria": 10404345.51555569,
+   "su_1": 0,
+   "perc_1": 0.0,
+   "in_0": 371517,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 0,
+   "su_1_congelati": 0,
+   "su_1_integratori": 0
+  },
+  {
+   "strato": 22,
+   "margine": 3.6765899318799143e-09,
+   "memoria": 271991170.76640636,
+   "su_1": 14,
+   "perc_1": 2.69981733807267e-06,
+   "in_0": 192588,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 14,
+   "su_1_congelati": 0,
+   "su_1_integratori": 14
+  },
+  {
+   "strato": 23,
+   "margine": 2.396334023917254e-07,
+   "memoria": 4173040.94512381,
+   "su_1": 0,
+   "perc_1": 0.0,
+   "in_0": 185597,
+   "fuori": 0,
+   "totale": 5185536,
+   "su_1_esatto": 0,
+   "su_1_congelati": 0,
+   "su_1_integratori": 0
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Poli discreti esaminati",
+   "valore": "124 452 864",
+   "nota": "211 token × 1536 canali × 16 stati × 24 strati",
+   "stato": null
+  },
+  {
+   "etichetta": "Fuori dal cerchio (ā > 1)",
+   "valore": "0",
+   "nota": "nessun polo instabile",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Arrotondati a 1 in FP32",
+   "valore": "50 958",
+   "nota": "0.0409 % dei poli: marginalmente stabili",
+   "stato": "attenzione"
+  },
+  {
+   "etichetta": "Su 1 con arrotondamento esatto",
+   "valore": "50 958",
+   "nota": "margine esatto < 2⁻²⁵: coincide con il conteggio dell'exp di questo dispositivo",
+   "stato": null
+  },
+  {
+   "etichetta": "Poli su 1: congelati · integratori",
+   "valore": "0 · 50 958",
+   "nota": "Δ = 0: stato fermo, il token non entra · Δ > 0: il modo somma il passato senza dimenticare",
+   "stato": null
+  },
+  {
+   "etichetta": "Polo più vicino a 1",
+   "valore": "4.81e-12",
+   "nota": "strato 16, memoria ≈ 2.08e+11 token",
+   "stato": null
+  },
+  {
+   "etichetta": "Strati con più poli su 1",
+   "valore": "17, 16, 0",
+   "nota": "17: 25 018 · 16: 10 099 · 0: 7 706",
+   "stato": null
+  },
+  {
+   "etichetta": "Arrotondati a 0 in FP32",
+   "valore": "4 028 713",
+   "nota": "3.24 %: senza memoria, innocui per la stabilità",
+   "stato": null
+  }
+ ],
+ "evidenzia": {
+  "17": "n. 1 per poli su 1",
+  "16": "n. 2 per poli su 1",
+  "0": "n. 3 per poli su 1"
+ }
+}

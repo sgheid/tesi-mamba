@@ -1,0 +1,118 @@
+{
+ "titolo": "Fase 4 - Uscita del modello, FP32 contro FP16",
+ "note_formato": "pesi in FP16, ricorrenza in FP32; NLL e KL in FP64 · dispositivo: cpu",
+ "righe": [
+  {
+   "strato": "0–63",
+   "da": 0,
+   "a": 63,
+   "nll": 3.2754883731497326,
+   "non_finite": 0,
+   "nll_r": 3.275026358092866,
+   "dnll": -0.0004620150568665401,
+   "kl": 7.255501861516906e-05,
+   "top1": 1.0,
+   "ppl": 26.456142795858064,
+   "ppl_r": 26.44392248274147
+  },
+  {
+   "strato": "64–127",
+   "da": 64,
+   "a": 127,
+   "nll": 2.7697673310622726,
+   "non_finite": 0,
+   "nll_r": 2.7694727081926525,
+   "dnll": -0.0002946228696205604,
+   "kl": 6.0355204932524225e-05,
+   "top1": 1.0,
+   "ppl": 15.954921363296895,
+   "ppl_r": 15.950221370976887
+  },
+  {
+   "strato": "128–191",
+   "da": 128,
+   "a": 191,
+   "nll": 3.511046100875374,
+   "non_finite": 0,
+   "nll_r": 3.509995780170559,
+   "dnll": -0.0010503207048152697,
+   "kl": 6.743213033506197e-05,
+   "top1": 1.0,
+   "ppl": 33.483276354208876,
+   "ppl_r": 33.44812663825756
+  },
+  {
+   "strato": "192–209",
+   "da": 192,
+   "a": 209,
+   "nll": 3.3176449851726746,
+   "non_finite": 0,
+   "nll_r": 3.319479878499515,
+   "dnll": 0.0018348933268406008,
+   "kl": 5.581355645195853e-05,
+   "top1": 0.9444444444444444,
+   "ppl": 27.595286666108972,
+   "ppl_r": 27.645967556258928
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "FP16",
+   "nota": "modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Perplexity",
+   "valore": "24.4533 → 24.4437",
+   "nota": "FP32 → FP16 · differenza relativa −0.0393 % · su 210 predizioni",
+   "stato": null
+  },
+  {
+   "etichetta": "KL media",
+   "valore": "6.58e-05",
+   "nota": "nat per posizione · mediana 4.78e-05 · P99 2.93e-04",
+   "stato": null
+  },
+  {
+   "etichetta": "KL massima",
+   "valore": "3.34e-04",
+   "nota": "posizione 49, che predice ' The'",
+   "stato": null
+  },
+  {
+   "etichetta": "Accordo top-1",
+   "valore": "99.5 %",
+   "nota": "1 posizione con un token più probabile diverso",
+   "stato": null
+  },
+  {
+   "etichetta": "ΔNLL media",
+   "valore": "-3.93e-04 nat",
+   "nota": "il formato ridotto dà in media più probabilità al token vero",
+   "stato": null
+  },
+  {
+   "etichetta": "KL: primo → ultimo quarto del testo",
+   "valore": "7.47e-05 → 6.37e-05",
+   "nota": "differenza relativa −14.7 %",
+   "stato": null
+  },
+  {
+   "etichetta": "Logit non finiti",
+   "valore": "0",
+   "nota": "nessuno",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Dispositivo",
+   "valore": "cpu",
+   "nota": "logit nel formato dei pesi, log_softmax, NLL e KL in FP64",
+   "stato": null
+  }
+ ],
+ "evidenzia": {
+  "0–63": "KL media più alta",
+  "192–209": "accordo top-1 più basso"
+ }
+}

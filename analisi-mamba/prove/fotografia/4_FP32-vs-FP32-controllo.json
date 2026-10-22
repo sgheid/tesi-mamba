@@ -1,0 +1,121 @@
+{
+ "titolo": "Fase 4 - Uscita del modello, FP32 contro FP32 (controllo)",
+ "note_formato": "pesi in FP32 (controllo), ricorrenza in FP32; NLL e KL in FP64 · dispositivo: cpu",
+ "righe": [
+  {
+   "strato": "0–63",
+   "da": 0,
+   "a": 63,
+   "nll": 3.2754883731497326,
+   "non_finite": 0,
+   "nll_r": 3.2754883731497326,
+   "dnll": 0.0,
+   "kl": 0.0,
+   "top1": 1.0,
+   "ppl": 26.456142795858064,
+   "ppl_r": 26.456142795858064
+  },
+  {
+   "strato": "64–127",
+   "da": 64,
+   "a": 127,
+   "nll": 2.7697673310622726,
+   "non_finite": 0,
+   "nll_r": 2.7697673310622726,
+   "dnll": 0.0,
+   "kl": 0.0,
+   "top1": 1.0,
+   "ppl": 15.954921363296895,
+   "ppl_r": 15.954921363296895
+  },
+  {
+   "strato": "128–191",
+   "da": 128,
+   "a": 191,
+   "nll": 3.511046100875374,
+   "non_finite": 0,
+   "nll_r": 3.511046100875374,
+   "dnll": 0.0,
+   "kl": 0.0,
+   "top1": 1.0,
+   "ppl": 33.483276354208876,
+   "ppl_r": 33.483276354208876
+  },
+  {
+   "strato": "192–209",
+   "da": 192,
+   "a": 209,
+   "nll": 3.3176449851726746,
+   "non_finite": 0,
+   "nll_r": 3.3176449851726746,
+   "dnll": 0.0,
+   "kl": 0.0,
+   "top1": 1.0,
+   "ppl": 27.595286666108972,
+   "ppl_r": 27.595286666108972
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "FP32 (controllo)",
+   "nota": "controllo: seconda copia in FP32, gli errori devono essere nulli · modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Perplexity",
+   "valore": "24.4533 → 24.4533",
+   "nota": "FP32 → FP32 (controllo) · nessuna differenza · su 210 predizioni",
+   "stato": null
+  },
+  {
+   "etichetta": "KL media",
+   "valore": "0.00e+00",
+   "nota": "nat per posizione · mediana 0.00e+00 · P99 0.00e+00",
+   "stato": null
+  },
+  {
+   "etichetta": "KL massima",
+   "valore": "0.00e+00",
+   "nota": "posizione 0, che predice ' theory'",
+   "stato": null
+  },
+  {
+   "etichetta": "Accordo top-1",
+   "valore": "100 %",
+   "nota": "nessuna posizione con un token più probabile diverso",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "ΔNLL media",
+   "valore": "+0.00e+00 nat",
+   "nota": "nessuna differenza",
+   "stato": null
+  },
+  {
+   "etichetta": "KL: primo → ultimo quarto del testo",
+   "valore": "0.00e+00 → 0.00e+00",
+   "nota": "nessuna differenza",
+   "stato": null
+  },
+  {
+   "etichetta": "Logit non finiti",
+   "valore": "0",
+   "nota": "nessuno",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Dispositivo",
+   "valore": "cpu",
+   "nota": "logit nel formato dei pesi, log_softmax, NLL e KL in FP64",
+   "stato": null
+  },
+  {
+   "etichetta": "Controllo FP32",
+   "valore": "superato",
+   "nota": "due passaggi in FP32: KL nulla, NLL identiche bit a bit, top-1 al 100%",
+   "stato": "ok"
+  }
+ ],
+ "evidenzia": {}
+}

@@ -2,7 +2,7 @@
 # "Solo FP32" deve coincidere in tutto (righe, indicatori, evidenze, formato) con la vecchia fase FP32;
 # con un confronto ogni campo delle righe della vecchia fase FP32 e della vecchia 3x deve avere lo stesso valore,
 # gli indicatori della 3x devono essere uguali e quelli FP32 devono iniziare con il vecchio valore ("valore → ...").
-# Uso:  python prove/verifica_fusione.py cartella_nuova cartella_vecchia --fasi 1,2,3
+# Uso:  python prove/verifica_fusione.py cartella_nuova prove/fotografia_fasi_precedenti --fasi 1,2,3
 import argparse
 import json
 import os

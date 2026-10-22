@@ -11,11 +11,18 @@ Si mette la cartella `analisi-mamba` dentro `tesi-mamba` e si riusa l'ambiente `
 cd tesi-mamba
 .venv\Scripts\activate
 cd analisi-mamba
-pip install -r requirements.txt
+pip install -r requirements-lock.txt
 ```
 
-PyTorch con CUDA è già installato. Su un PC nuovo va installato prima, con l'indice CUDA giusto
-(numero da `nvidia-smi`), per esempio:
+`requirements-lock.txt` è l'ambiente esatto del PC fisso con cui sono stati prodotti i risultati (`pip freeze`):
+Python 3.14, PyTorch 2.14.1 con CUDA 12.6 (preso dall'indice di PyTorch indicato nel file), transformers 5.17.0,
+Streamlit 1.66. Le versioni di PyTorch e transformers compaiono anche nelle informazioni di ogni file Excel.
+
+In alternativa, `requirements.txt` ha solo le versioni minime, ma **transformers resta fissata alla 5.17.0**: la Fase 5
+sostituisce `modeling_mamba.mamba_selective_scan`, che esiste in quella forma solo nella 5.x. Con un'altra versione la
+Fase 5 si ferma con un errore se la funzione manca; se c'è ma è cambiata potrebbe misurare altro, quindi prima di
+usarla va rieseguito `prove/prova_ricorrenza.py` (e conviene confrontare tutte le fasi con `prove/fotografia/`, vedi
+Note). In questo caso PyTorch va installato prima, con l'indice CUDA giusto (numero da `nvidia-smi`), per esempio:
 ```
 pip install torch --index-url https://download.pytorch.org/whl/cu126
 ```
@@ -147,11 +154,15 @@ prove/            script da riga di comando (vedi Note)
     dopo la copia;
   - `fotografa_fasi.py cartella [--confronta riferimento] [--fasi 1,2]`: esegue le fasi in tutte le
     combinazioni sul testo di esempio, più i controlli nascosti "FP32 vs FP32" (Fasi 1–4) e "ricorrenza in FP32"
-    (Fase 5), che devono dare errori nulli, e salva righe e indicatori in JSON;
+    (Fase 5), che devono dare errori nulli, e salva righe, indicatori e versioni delle librerie in JSON.
+    **Test di regressione:** `prove/fotografia/` è la fotografia di tutte le fasi attuali (130M su CPU, 22/10/2026).
+    Dopo ogni modifica al codice, `python prove/fotografa_fasi.py nuova --confronta prove/fotografia` deve dire
+    "Tutte identiche al riferimento" (due esecuzioni sullo stesso PC danno numeri identici); se cambiano le versioni
+    delle librerie lo script lo segnala prima delle differenze;
   - `prova_soglie.py [--gpu]`: soglie di arrotondamento di ā verso 1 e verso 0, in modo esaustivo;
   - `prova_ricorrenza.py [--gpu]`: ricorrenza simulata identica bit a bit in FP32 e funzione originale ripristinata;
-  - `verifica_fusione.py nuova prove/fotografia`: confronta le fasi attuali con `prove/fotografia/`, la
-    fotografia delle sei fasi precedenti (130M su CPU). Esito al momento della riorganizzazione: identiche.
+  - `verifica_fusione.py nuova prove/fotografia_fasi_precedenti`: confronta le Fasi 1–3 attuali con la fotografia
+    delle sei fasi precedenti (130M su CPU). Esito al momento della riorganizzazione: identiche.
 - **I poli su 1 in FP32 dipendono dal dispositivo.** Δ e margini esatti sono gli stessi su CPU e GPU, ma l'exp
   in FP32 della GPU non è arrotondato correttamente vicino a 1 e porta a 1 anche margini oltre 2⁻²⁴: sul testo di
   prova il 130M ha 50 958 poli su 1 su CPU e 99 515 su GPU, il 1.4B 495 310 su CPU e 919 870 su GPU. I poli in 0 non

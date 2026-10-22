@@ -1,7 +1,8 @@
 # Fotografia dei risultati: esegue ogni fase di fasi/ in tutte le combinazioni dei parametri sul testo di esempio
 # e salva in JSON righe per strato, indicatori, evidenze e formato; con --confronta segnala ogni differenza.
 # Le fasi con il parametro "Confronto" girano anche nel controllo FP32 contro FP32, la Fase 5 con la ricorrenza in FP32:
-# controlli che non compaiono nel menu e devono dare errori nulli.
+# controlli che non compaiono nel menu e devono dare errori nulli. In versioni.json: librerie, modello e testo usati.
+# Riferimento attuale: prove/fotografia/ (130M su CPU), da confrontare dopo ogni modifica al codice.
 # Uso:  python prove/fotografa_fasi.py cartella_uscita [--confronta cartella_riferimento] [--fasi 1,2]
 #                                      [--modello 130m] [--gpu]
 import argparse
@@ -16,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fasi import carica_fasi
 from nucleo.confronto import CONTROLLO
-from nucleo.modelli import carica_e_verifica, cartella_cache_predefinita, trova_modelli
+from nucleo.modelli import carica_e_verifica, cartella_cache_predefinita, trova_modelli, versioni
 from nucleo.ricorrenza import CONTROLLO as CONTROLLO_RICORRENZA
 from nucleo.risultato import Contesto
 from nucleo.testo import TESTO_ESEMPIO, prepara
@@ -98,6 +99,20 @@ def main():
         raise SystemExit("Fasi non caricate: " + ", ".join(nome for nome, _ in errori))
     os.makedirs(arg.uscita, exist_ok=True)
     print(f"{ctx.info_modello['nome']} su {dispositivo}, {ctx.n_token} token")
+
+    import numpy
+    ambiente = dict(versioni(), numpy=numpy.__version__, dispositivo=dispositivo, modello=ctx.info_modello["nome"],
+                    commit=ctx.info_modello["commit"], token=ctx.n_token)
+    with open(os.path.join(arg.uscita, "versioni.json"), "w", encoding="utf-8") as f:
+        json.dump(ambiente, f, ensure_ascii=False, indent=1)
+    # Con librerie o dispositivo diversi dal riferimento qualche differenza può essere attesa: lo si dice subito
+    percorso_rif = os.path.join(arg.confronta or "", "versioni.json")
+    if arg.confronta and os.path.exists(percorso_rif):
+        with open(percorso_rif, encoding="utf-8") as f:
+            rif = json.load(f)
+        for k in sorted(set(rif) | set(ambiente)):
+            if rif.get(k) != ambiente.get(k):
+                print(f"  Attenzione, {k} diverso dal riferimento: {rif.get(k)} -> {ambiente.get(k)}")
 
     diverse = 0
     if arg.fasi:
