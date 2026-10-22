@@ -1,4 +1,4 @@
-MAX_TOKEN_PREDEFINITO = 1024
+MAX_TOKEN_PREDEFINITO = 4096
 
 # Testo di esempio fisso, per risultati ripetibili (211 token con il tokenizer di Mamba)
 TESTO_ESEMPIO = (

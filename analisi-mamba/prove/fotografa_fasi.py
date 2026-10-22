@@ -1,6 +1,7 @@
 # Fotografia dei risultati: esegue ogni fase di fasi/ in tutte le combinazioni dei parametri sul testo di esempio
 # e salva in JSON righe per strato, indicatori, evidenze e formato; con --confronta segnala ogni differenza.
-# Le fasi con il parametro "Confronto" girano anche nel controllo FP32 contro FP32, che non compare nel menu.
+# Le fasi con il parametro "Confronto" girano anche nel controllo FP32 contro FP32, la Fase 5 con la ricorrenza in FP32:
+# controlli che non compaiono nel menu e devono dare errori nulli.
 # Uso:  python prove/fotografa_fasi.py cartella_uscita [--confronta cartella_riferimento] [--fasi 1,2]
 #                                      [--modello 130m] [--gpu]
 import argparse
@@ -16,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fasi import carica_fasi
 from nucleo.confronto import CONTROLLO
 from nucleo.modelli import carica_e_verifica, cartella_cache_predefinita, trova_modelli
+from nucleo.ricorrenza import CONTROLLO as CONTROLLO_RICORRENZA
 from nucleo.risultato import Contesto
 from nucleo.testo import TESTO_ESEMPIO, prepara
 
@@ -36,9 +38,13 @@ def uguali(x, y):
     return x == y
 
 
-# Le scelte del menu più, per il parametro "Confronto", il controllo FP32 contro FP32
+# Le scelte del menu più il controllo FP32 nascosto: FP32 contro FP32 per il parametro "Confronto",
+# ricorrenza in FP32 per il "Formato della ricorrenza" della Fase 5
+CONTROLLI = {"confronto": CONTROLLO, "formato_ricorrenza": CONTROLLO_RICORRENZA}
+
+
 def scelte(parametro):
-    return parametro.scelte + ([CONTROLLO] if parametro.chiave == "confronto" else [])
+    return parametro.scelte + ([CONTROLLI[parametro.chiave]] if parametro.chiave in CONTROLLI else [])
 
 
 # NaN e infiniti come stringhe, per un JSON valido

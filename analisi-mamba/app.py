@@ -647,7 +647,8 @@ def pagina_testo(fasi):
                              key=f"anteprima_{caricato.name}_{caricato.size}")
         max_token = st.number_input("Token massimi", 16, 8192, MAX_TOKEN_PREDEFINITO, step=64,
                                     help="I testi più lunghi vengono troncati. Su una GPU da 8 GB con un modello "
-                                         "da circa 1.4B parametri, 1024 è un limite prudente.")
+                                         "da circa 1.4B parametri, se la memoria non basta conviene scendere "
+                                         "a 2048 o 1024.")
         pronto = bool(grezzo and grezzo.strip())
         if pronto:
             n = len(st.session_state.tok(grezzo.strip()).input_ids)

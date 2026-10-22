@@ -8,6 +8,7 @@ import torch
 from nucleo import confronto as cf
 from nucleo import grafica as g
 from nucleo.formato import fmt_int, fmt_perc, fmt_sci
+from nucleo.margini import ERR_MAX, ERR_MIN, N_ERR, mediana_errore
 from nucleo.precisione import FORMATI, delta_baseline, descrivi_formato, indicatore_formato, passaggio_ridotto
 from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Risultato, valori
 from nucleo.sonde import delta_fp32, delta_fp64, esegui_con_sonde, ingresso_delta
@@ -15,9 +16,6 @@ from nucleo.sonde import delta_fp32, delta_fp64, esegui_con_sonde, ingresso_delt
 # Istogramma dei margini: log10(1 - abar) da -16 a 0, a quarti di decade
 LOG_MIN, LOG_MAX, PASSO = -16.0, 0.0, 0.25
 N_BIN = int((LOG_MAX - LOG_MIN) / PASSO)
-# Istogramma dell'errore relativo sul margine: log10 da -12 a 2 a centesimi di decade (per la mediana)
-ERR_MIN, ERR_MAX, ERR_PASSO = -12.0, 2.0, 0.01
-N_ERR = int(round((ERR_MAX - ERR_MIN) / ERR_PASSO))
 # Istogramma dei margini della baseline vicino alla soglia FP32: log10(1 - abar) da -10 a -5
 VIC_MIN, VIC_MAX, VIC_PASSO = -10.0, -5.0, 0.05
 N_VIC = int(round((VIC_MAX - VIC_MIN) / VIC_PASSO))
@@ -55,6 +53,8 @@ COLONNE = [Colonna("strato", "Strato", "", "int"),
            Colonna("memoria", "Memoria massima", "token ≈ 1/(1-abar)", "sci"),
            Colonna("su_1", "Poli su 1 in FP32", "numero", "int"),
            Colonna("perc_1", "Poli su 1 in FP32", "% dello strato", "perc"),
+           Colonna("su_1_congelati", "Poli su 1 con Delta = 0", "modi congelati", "int"),
+           Colonna("su_1_integratori", "Poli su 1 con Delta > 0", "integratori veri", "int"),
            Colonna("su_1_esatto", "Poli su 1, arrotondamento esatto", "margine < 2^-25", "int"),
            Colonna("in_0", "Poli in 0 in FP32", "numero", "int")]
 
@@ -62,6 +62,12 @@ LEGENDA = [("Polo più vicino a 1", "Il margine di stabilità più piccolo dello
            ("Memoria massima", "Quanti token servono a quel modo per dimenticare: circa 1/(1 - abar)."),
            ("Poli su 1 in FP32", "Poli che FP32 arrotonda esattamente a 1: da asintoticamente a marginalmente stabili."),
            ("% dello strato", "Quota dei poli dello strato (token x canali x stati) arrotondati a 1."),
+           ("Poli su 1 con Delta = 0", "Modi congelati: con Delta = 0 vale abar = 1 qualunque sia a, ma anche "
+                                       "Delta·B·u = 0. Lo stato resta fermo (h_t = h_t-1) e il token non entra: il modo "
+                                       "salta il token senza ricordarlo né dimenticare."),
+           ("Poli su 1 con Delta > 0", "Integratori veri: abar = 1 perché il margine è sotto la risoluzione, ma "
+                                        "Delta > 0 e il token entra nello stato (h_t = h_t-1 + Delta·B·u): il modo somma "
+                                        "tutto il passato senza mai dimenticare."),
            ("Poli su 1, arrotondamento esatto", "Poli con margine esatto (FP64) sotto 2^-25: quelli che un exp FP32 "
                                                 "arrotondato correttamente porta a 1. Non dipende dal dispositivo. "
                                                 "'Poli su 1 in FP32' usa invece l'exp del dispositivo: sulla GPU, che "
@@ -82,13 +88,14 @@ def _margini(ctx):
             a32, a64 = -torch.exp(mixer.A_log.float()), -torch.exp(mixer.A_log.double())
             L, D = d32.shape
             passo = max(1, 4_000_000 // (D * a32.shape[1]))
-            margine_min, su_1, in_0, fuori, su_1_esatto = float("inf"), 0, 0, 0, 0
+            margine_min, su_1, in_0, fuori, su_1_esatto, congelati = float("inf"), 0, 0, 0, 0, 0
             isto = torch.zeros(N_BIN, dtype=torch.float64, device=d32.device)
             for s in range(0, L, passo):
                 abar32 = torch.exp(d32[s:s + passo, :, None] * a32)
                 margine64 = -torch.expm1(d64[s:s + passo, :, None] * a64)
                 margine_min = min(margine_min, margine64.min().item())
                 su_1 += int((abar32 == 1.0).sum().item())
+                congelati += int(((abar32 == 1.0) & (d32[s:s + passo] == 0)[:, :, None]).sum().item())
                 in_0 += int((abar32 == 0.0).sum().item())
                 fuori += int((abar32 > 1.0).sum().item())
                 su_1_esatto += int((margine64 < g.SOGLIA_FP32).sum().item())
@@ -98,7 +105,7 @@ def _margini(ctx):
             dati[i] = dict(strato=i, margine=margine_min,
                            memoria=1.0 / margine_min if margine_min > 0 else float("inf"),
                            su_1=su_1, perc_1=su_1 / totale, in_0=in_0, fuori=fuori, totale=totale,
-                           su_1_esatto=su_1_esatto)
+                           su_1_esatto=su_1_esatto, su_1_congelati=congelati, su_1_integratori=su_1 - congelati)
             istogrammi[i] = isto.cpu().numpy()
             ctx.avanzamento((i + 1) / n, f"Strato {i + 1} di {n}")
         return hook
@@ -138,6 +145,7 @@ def _solo_fp32(ctx):
     n = len(righe)
     totale, su_1, in_0, fuori, piu_vicino, peggiori = _sintesi(righe)
     esatti = sum(valori(righe, "su_1_esatto"))
+    congelati = sum(valori(righe, "su_1_congelati"))
 
     indicatori = [
         Indicatore("Poli discreti esaminati", fmt_int(totale),
@@ -150,6 +158,8 @@ def _solo_fp32(ctx):
                    f"{fmt_perc(su_1 / totale)} dei poli: marginalmente stabili",
                    "attenzione" if su_1 > 0 else "ok"),
         Indicatore("Su 1 con arrotondamento esatto", fmt_int(esatti), _nota_esatti(su_1, esatti)),
+        Indicatore("Poli su 1: congelati · integratori", f"{fmt_int(congelati)} · {fmt_int(su_1 - congelati)}",
+                   "Δ = 0: stato fermo, il token non entra · Δ > 0: il modo somma il passato senza dimenticare"),
         Indicatore("Polo più vicino a 1", fmt_sci(piu_vicino["margine"]),
                    f"strato {piu_vicino['strato']}, memoria ≈ {fmt_sci(piu_vicino['memoria'])} token"),
         Indicatore("Strati con più poli su 1", _strati_peggiori(peggiori),
@@ -166,7 +176,8 @@ def _solo_fp32(ctx):
         righe=righe,
         indicatori=indicatori,
         legenda=LEGENDA,
-        grafici=[_grafico_margine(righe), _grafico_su_uno(righe), _grafico_distribuzione(istogrammi, n)],
+        grafici=[_grafico_margine(righe), _grafico_su_uno(righe), _grafico_tipi_su_uno(righe),
+                 _grafico_distribuzione(istogrammi, n)],
         evidenzia={r["strato"]: f"n. {k} per poli su 1" for k, r in enumerate(peggiori, start=1)},
         note_formato="FP32, con riferimento esatto in FP64 per il margine 1 - abar",
     )
@@ -181,6 +192,7 @@ def _con_confronto(ctx, nome):
     totale, su_1, in_0, fuori, piu_vicino, peggiori = _sintesi(righe)
     _, su_1_r, in_0_r, fuori_r, piu_vicino_r, peggiori_r = _sintesi(righe_r)
     esatti, esatti_r = sum(valori(righe, "su_1_esatto")), sum(valori(righe_r, "su_1_esatto"))
+    congelati, congelati_r = sum(valori(righe, "su_1_congelati")), sum(valori(righe_r, "su_1_congelati"))
 
     indicatori = [
         errori.indicatori[0],
@@ -195,6 +207,10 @@ def _con_confronto(ctx, nome):
                       "attenzione" if su_1 or su_1_r else "ok"),
         cf.indicatore("Su 1 con arrotondamento esatto", esatti, esatti_r, fmt_int, nome,
                       "FP32: " + _nota_esatti(su_1, esatti)),
+        cf.indicatore("Poli su 1 con Δ = 0 (congelati)", congelati, congelati_r, fmt_int, nome,
+                      "stato fermo, il token non entra"),
+        cf.indicatore("Poli su 1 con Δ > 0 (integratori)", su_1 - congelati, su_1_r - congelati_r, fmt_int, nome,
+                      "il modo somma il passato senza dimenticare"),
         cf.indicatore("Polo più vicino a 1", piu_vicino["margine"], piu_vicino_r["margine"], fmt_sci, nome,
                       f"strato {piu_vicino['strato']} → {piu_vicino_r['strato']}"
                       + (": margine 0, cioè Δ = 0" if piu_vicino_r["margine"] == 0 else "")),
@@ -217,6 +233,7 @@ def _con_confronto(ctx, nome):
                 + [(f"FP32 e {nome}", f"Le grandezze della Solo FP32 compaiono due volte: nel modello FP32 e nella copia "
                                       f"con i pesi in {nome}, dove abar è calcolato in FP32 dal Delta e da a della copia.")],
         grafici=[_grafico_margine(righe, righe_r, nome), _grafico_su_uno(righe, righe_r, nome),
+                 _grafico_tipi_su_uno(righe, righe_r, nome),
                  _grafico_distribuzione(istogrammi, n, istogrammi_r, nome)] + errori.grafici,
         evidenzia=cf.evidenze_unite({r["strato"]: f"n. {k} per poli su 1" for k, r in enumerate(peggiori, start=1)},
                                     errori.evidenzia),
@@ -319,6 +336,51 @@ def _grafico_su_uno(righe, righe_r=None, nome=None):
     )
 
 
+# Poli su 1 per strato divisi per Delta: integratori (Delta > 0) in basso, congelati (Delta = 0) sopra.
+# Con un confronto due colonne per strato (FP32, formato ridotto), ognuna con le due parti impilate
+def _grafico_tipi_su_uno(righe, righe_r=None, nome=None):
+    x = valori(righe, "strato")
+    fig = g.nuova_figura("Strato", "Poli su 1  (numero)", hover_unificato=False)
+    serie = [("FP32" if righe_r else "", righe, g.BLU, g.BLU_CHIARO)]
+    if righe_r:
+        serie.append((nome, righe_r, g.ARANCIO, g.ARANCIO_CHIARO))
+    dati = pd.DataFrame({"strato": x})
+    for etichetta, elenco, scuro, chiaro in serie:
+        integratori, congelati = valori(elenco, "su_1_integratori"), valori(elenco, "su_1_congelati")
+        suffisso = f" {etichetta}" if etichetta else ""
+        gruppo = dict(offsetgroup=etichetta or "fp32")
+        fig.add_trace(go.Bar(x=x, y=integratori, name=f"integratori (Δ > 0){suffisso}", **gruppo,
+                             marker=dict(color=scuro, line_width=0),
+                             hovertemplate=f"strato %{{x}}: %{{y:,}} integratori{suffisso}<extra></extra>"))
+        fig.add_trace(go.Bar(x=x, y=congelati, base=integratori, name=f"congelati (Δ = 0){suffisso}", **gruppo,
+                             marker=dict(color=chiaro, line_width=0),
+                             hovertemplate=f"strato %{{x}}: %{{y:,}} congelati{suffisso}<extra></extra>"))
+        dati[f"integratori Delta > 0{suffisso}"], dati[f"congelati Delta = 0{suffisso}"] = integratori, congelati
+    fig.update_layout(barmode="group", bargap=0.2, bargroupgap=0.05)
+    fig.update_yaxes(rangemode="tozero")
+    g.asse_strati(fig, len(righe))
+    come_leggere = r"""
+- **Altezza totale della barra** = poli su 1 dello strato, divisi in due parti con significati diversi:
+  - **parte scura, integratori veri** ($\Delta > 0$): $\bar a = 1$ perché il margine è sotto la risoluzione del formato,
+    ma il token entra nello stato: $h_t = h_{t-1} + \Delta B u_t$. Il modo somma tutto il passato e non dimentica mai;
+  - **parte chiara, modi congelati** ($\Delta = 0$): $\bar a = e^{0} = 1$ qualunque sia $a$, ma anche $\Delta B u_t = 0$:
+    $h_t = h_{t-1}$. Lo stato resta fermo e quel token viene saltato, senza essere ricordato né dimenticato.
+- In FP32 $\Delta = 0$ richiede che il softplus vada in underflow, quindi i congelati sono di solito assenti; in FP16 compaiono
+  quando il formato azzera $\Delta$ (Fase 2).
+- **Esempio di lettura:** una barra alta 3 000 con 2 800 nella parte chiara dice che in quello strato quasi tutti i poli su 1
+  sono token saltati (2 800 / 16 stati = 175 coppie token × canale con $\Delta = 0$), e solo 200 sono integratori veri.
+"""
+    if righe_r:
+        come_leggere += f"""- **Blu = FP32, arancione = {nome}**: due colonne affiancate per strato, ognuna con le due parti impilate.
+"""
+    return Grafico(
+        "Poli su 1 per tipo: integratori (Δ > 0) e modi congelati (Δ = 0)", fig,
+        "I poli su 1 di ogni strato divisi per valore di Δ." + (f" In arancione la copia in {nome}." if righe_r else ""),
+        come_leggere,
+        dati,
+    )
+
+
 def _grafico_distribuzione(istogrammi, n, istogrammi_r=None, nome=None):
     conteggi = sum(istogrammi[i] for i in range(n))
     bordi = np.linspace(LOG_MIN, LOG_MAX, N_BIN + 1)
@@ -382,17 +444,6 @@ def _grafico_distribuzione(istogrammi, n, istogrammi_r=None, nome=None):
 # Poli nuovi e persi a bassa precisione: il calcolo della vecchia Fase 3c, sul passaggio ridotto condiviso.
 # In più, nello stesso ciclo, le grandezze della Solo FP32 per la copia (margine minimo, ā = 0, ā > 1, istogramma)
 
-# Mediana dall'istogramma: errori nulli contati a parte, poi la cumulata dei bin (centro del bin, in log)
-def _mediana(zeri, isto):
-    totale = zeri + isto.sum()
-    if totale == 0:
-        return float("nan")
-    if zeri >= totale / 2:
-        return 0.0
-    k = int(np.searchsorted(np.cumsum(isto), totale / 2 - zeri))
-    return 10 ** (ERR_MIN + (k + 0.5) * ERR_PASSO)
-
-
 def _errori(ctx, nome, passaggio):
     tipo = FORMATI[nome]
     n = len(ctx.model.backbone.layers)
@@ -416,7 +467,7 @@ def _errori(ctx, nome, passaggio):
         isto = torch.zeros(N_ERR, dtype=torch.float64, device=dev)
         vb = torch.zeros(N_VIC, dtype=torch.float64, device=dev)
         v1 = torch.zeros(N_VIC, dtype=torch.float64, device=dev)
-        margine_min_r, in_0_r, fuori_r, su_1_esatto_r = float("inf"), 0, 0, 0
+        margine_min_r, in_0_r, fuori_r, su_1_esatto_r, congelati_r = float("inf"), 0, 0, 0, 0
         isto_r = torch.zeros(N_BIN, dtype=torch.float64, device=dev)
         for s in range(0, L, passo):
             db, dr = d_b[s:s + passo], d_r[s:s + passo]
@@ -446,6 +497,7 @@ def _errori(ctx, nome, passaggio):
             if m_r_finiti.numel():
                 margine_min_r = min(margine_min_r, m_r_finiti.min().item())
             in_0_r += int((abar_r == 0.0).sum().item())
+            congelati_r += int((uno_r & zero_r).sum().item())
             fuori_r += int((abar_r > 1.0).sum().item())
             su_1_esatto_r += int((m_r_finiti < g.SOGLIA_FP32).sum().item())
             lg_r = torch.log10(m_r_finiti.clamp_min(1e-300)).clamp(LOG_MIN, LOG_MAX - 1e-9)
@@ -455,11 +507,12 @@ def _errori(ctx, nome, passaggio):
         vicini_base[i], vicini_su_1[i] = vb.cpu().numpy(), v1.cpu().numpy()
         totale = L * a_r32.numel()
         dati[i] = dict(strato=i, **c, nuovi=c["nuovi_zero"] + c["nuovi_soglia"],
-                       err_mediana=_mediana(zeri_err[i], isto_err[i]), totale=totale)
+                       err_mediana=mediana_errore(zeri_err[i], isto_err[i]), totale=totale)
         righe_r.append(dict(strato=i, margine=margine_min_r,
                             memoria=1.0 / margine_min_r if margine_min_r > 0 else float("inf"),
                             su_1=c["su_1_rid"], perc_1=c["su_1_rid"] / totale, in_0=in_0_r, fuori=fuori_r,
-                            totale=totale, su_1_esatto=su_1_esatto_r))
+                            totale=totale, su_1_esatto=su_1_esatto_r, su_1_congelati=congelati_r,
+                            su_1_integratori=c["su_1_rid"] - congelati_r))
         istogrammi_r[i] = isto_r.cpu().numpy()
         ctx.avanzamento((i + 1) / n, f"{nome}, strato {i + 1} di {n}")
 
@@ -467,7 +520,7 @@ def _errori(ctx, nome, passaggio):
     righe = [dati[i] for i in range(n)]
     somma = {k: sum(valori(righe, k)) for k in ("su_1_base", "su_1_rid", "nuovi", "nuovi_zero", "nuovi_soglia",
                                                 "persi", "non_finiti", "totale")}
-    err_tipico = _mediana(sum(zeri_err.values()), sum(isto_err.values()))
+    err_tipico = mediana_errore(sum(zeri_err.values()), sum(isto_err.values()))
     controllo = tipo == torch.float32
     tutto_zero = (somma["nuovi"] == 0 and somma["persi"] == 0 and somma["non_finiti"] == 0
                   and all(r["err_mediana"] == 0 for r in righe) and all(not v.any() for v in isto_err.values()))

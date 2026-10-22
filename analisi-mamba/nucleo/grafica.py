@@ -8,6 +8,7 @@ BLU_CHIARO = "#8cc2ff"
 BLU_TENUE = "rgba(76, 154, 255, 0.18)"
 # Arancione = formato ridotto (FP16/BF16) sovrapposto al FP32 in blu; il rosso resta per le soglie
 ARANCIO = "#eb6834"
+ARANCIO_CHIARO = "#f5a97f"
 ROSSO_STATO = "#ff6b6b"
 ROSSO_TENUE = "rgba(255, 107, 107, 0.12)"
 VERDE_STATO = "#3ccf73"

@@ -10,7 +10,7 @@ from nucleo.modelli import _carica_pesi, libera
 from nucleo.risultato import Indicatore
 from nucleo.sonde import delta_modello, esegui_con_sonde
 
-# Formati dei pesi per la Fase 3: il controllo FP32 deve dare errori esattamente nulli
+# Formati dei pesi delle copie a bassa precisione (Fasi 1-4): il controllo FP32 deve dare errori esattamente nulli
 FORMATI = {"FP16": torch.float16, "BF16": torch.bfloat16, "FP32 (controllo)": torch.float32}
 
 # In FP16 un valore positivo sotto 2^-25 (metà del più piccolo subnormale, 2^-24) diventa 0
@@ -117,7 +117,7 @@ def copia_in_formato(ctx, tipo):
             _rileggi_pesi(ctx.model, ctx.info_modello["percorso"], ctx.dispositivo)
         esito["fp32_intatto"] = impronta(ctx.model) == prima
         if not esito["fp32_intatto"]:
-            raise RuntimeError("I pesi del modello FP32 sono cambiati durante la Fase 3: ricarica il modello.")
+            raise RuntimeError("I pesi del modello FP32 sono cambiati durante il confronto: ricarica il modello.")
 
 
 # Passaggio di riferimento sul modello FP32 condiviso: Delta di ogni strato, tenuti su CPU in FP32
@@ -159,15 +159,27 @@ def _chiave_cache(ctx, nome):
     return ctx.info_modello["percorso"], ctx.info_modello["commit"], ctx.dispositivo, impronta_testo, nome
 
 
-def passaggio_ridotto(ctx, nome, avanzamento=lambda frazione, messaggio="": None):
+# Valore calcolato una volta per modello, testo e nome; un modello o un testo diverso svuota la cache
+def da_cache(ctx, nome, calcola):
     chiave = _chiave_cache(ctx, nome)
-    if chiave in _CACHE:
+    if chiave not in _CACHE:
+        if any(k[:4] != chiave[:4] for k in _CACHE):
+            svuota_cache()
+        _CACHE[chiave] = calcola()
+    return _CACHE[chiave]
+
+
+# Tiene anche, per la Fase 4, lo stato finale della copia (uscita di norm_f, nel formato della copia) e una copia
+# su CPU del suo lm_head: col 1.4B circa 200 MB in più per formato
+def passaggio_ridotto(ctx, nome, avanzamento=lambda frazione, messaggio="": None):
+    if _chiave_cache(ctx, nome) in _CACHE:
         avanzamento(1.0, f"riuso il passaggio in {nome} già fatto su questo testo")
-        return _CACHE[chiave]
-    if any(k[:4] != chiave[:4] for k in _CACHE):
-        svuota_cache()
+    return da_cache(ctx, nome, lambda: _passaggio_ridotto(ctx, nome, avanzamento))
+
+
+def _passaggio_ridotto(ctx, nome, avanzamento):
     n = len(ctx.model.backbone.layers)
-    strati = {}
+    strati, uscita = {}, {}
 
     def crea_hook(i, mixer):
         def hook(modulo, ingresso, uscita):
@@ -176,10 +188,18 @@ def passaggio_ridotto(ctx, nome, avanzamento=lambda frazione, messaggio="": None
             avanzamento((i + 1) / n, f"{nome}, strato {i + 1} di {n}")
         return hook
 
+    def hook_finale(modulo, ingresso, uscita_norm):
+        uscita["stato_finale"] = uscita_norm[0].detach().cpu()
+
     avanzamento(0.0, f"carico la copia in {nome}")
-    esito = esegui_in_formato(ctx, FORMATI[nome], crea_hook)
-    _CACHE[chiave] = dict(strati=[strati[i] for i in range(n)], esito=esito)
-    return _CACHE[chiave]
+    with copia_in_formato(ctx, FORMATI[nome]) as (copia, esito):
+        maniglia = copia.backbone.norm_f.register_forward_hook(hook_finale)
+        try:
+            esegui_con_sonde(copia, ctx.ids, crea_hook)
+        finally:
+            maniglia.remove()
+        uscita["lm_head"] = copia.lm_head.weight.detach().to("cpu", copy=True)
+    return dict(strati=[strati[i] for i in range(n)], esito=esito, uscita=uscita)
 
 
 def indicatore_formato(nome, dispositivo, esito):
