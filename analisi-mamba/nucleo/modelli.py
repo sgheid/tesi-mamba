@@ -185,6 +185,8 @@ MESSAGGIO_PAGING = ("Memoria virtuale di Windows esaurita (errore 1455, file di 
 # Caricamento (FP32 se non indicato): prima quello diretto, tensore per tensore; se fallisce per un motivo diverso
 # dalla memoria, from_pretrained con ripiego per transformers vecchi (torch_dtype) o senza accelerate (device_map)
 def _carica_pesi(percorso, dispositivo, tipo=torch.float32):
+    from nucleo.scansione import installa
+    installa()  # ricorrenza a blocchi di token quando non entra nella VRAM (nucleo/scansione.py)
     try:
         return _carica_diretto(percorso, dispositivo, tipo)
     except torch.cuda.OutOfMemoryError:

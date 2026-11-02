@@ -356,8 +356,12 @@ def esegui_fase(fase, parametri, avanzamento):
     except Exception as e:
         import torch
         if isinstance(e, torch.cuda.OutOfMemoryError):
+            dettaglio = str(e).split("\n")[0]
+            occupata = torch.cuda.memory_allocated() / 2 ** 30
             torch.cuda.empty_cache()
-            return None, ("Memoria della GPU esaurita: riduci i token massimi o usa un testo più corto.", "")
+            return None, (f"Memoria della GPU esaurita ({occupata:.2f} GB occupati da PyTorch al momento dell'errore). "
+                          "Chiudi i programmi che usano la GPU (es. video nel browser), riduci i token massimi o usa "
+                          "un testo più corto.", f"{dettaglio}\n\n{traceback.format_exc()}")
         return None, (f"{type(e).__name__}: {e}", traceback.format_exc())
     ris.info = dict(
         modello=info["nome"], percorso=info["percorso"], commit=info["commit"],

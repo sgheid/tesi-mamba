@@ -2,13 +2,14 @@ import torch
 import torch.nn.functional as F
 
 
-# Sonda su x_proj di ogni strato: il modello legge il testo e ogni hook riceve l'uscita
+# Sonda su x_proj di ogni strato: il modello legge il testo e ogni hook riceve l'uscita. Basta il backbone: i logit
+# (token × vocabolario, col 1.4B a 2048 token 400 MB in FP32) qui non servono
 def esegui_con_sonde(model, ids, crea_hook):
     maniglie = [layer.mixer.x_proj.register_forward_hook(crea_hook(i, layer.mixer))
                 for i, layer in enumerate(model.backbone.layers)]
     try:
         with torch.no_grad():
-            model(ids, use_cache=False)
+            model.backbone(ids, use_cache=False)
     finally:
         for m in maniglie:
             m.remove()

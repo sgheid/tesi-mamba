@@ -205,7 +205,17 @@ prove/            script da riga di comando (vedi Note)
 - **Testi lunghi**: "Token massimi" vale 2048 di predefinito, la lunghezza di addestramento di Mamba (Gu e Dao, 2023,
   §4.2); si può salire fino a 8192, con un avviso oltre 2048. I testi più lunghi vengono troncati.
   Col 1.4B a 4096 token le Fasi 2–3, eseguite insieme, tengono in RAM circa 3 GB di Δ più circa 1,6 GB per formato; sulla GPU da 8 GB la
-  Fase 5B usa la stessa memoria di un passaggio normale del modello, che a 4096 token può non bastare.
+  Fase 5B usa la stessa memoria di un passaggio normale del modello.
+- **Ricorrenza a blocchi** (`nucleo/scansione.py`, 02/11/2026). La ricorrenza di transformers
+  (`mamba_selective_scan`) calcola `discrete_A`, `discrete_B` e `deltaB_u` per l'intera sequenza: col 1.4B a 2048
+  token sono tensori FP32 da 512 MB l'uno, che con i pesi FP32 (5,1 GB) non entrano nella GPU da 8 GB. Sulla GPU,
+  quando un tensore intero supererebbe 256 MB, la discretizzazione è fatta a blocchi di token da 64 MB (256 token
+  col 1.4B), con le stesse operazioni elemento per elemento e lo stesso ciclo sui token; la ricorrenza simulata della
+  Fase 5 usa gli stessi blocchi. Stato, uscita e conteggi sono identici bit a bit alla versione intera; il 130M fino a
+  2048 token e ogni esecuzione su CPU non usano i blocchi e passano dalla funzione originale come prima.
+  Verifica: `prove/prova_blocchi.py [--gpu]`, oppure due fotografie, la seconda con i blocchi imposti
+  (`set MAMBA_TOKEN_PER_BLOCCO=50`), che devono essere identiche. Le sonde delle Fasi 2–3 eseguono solo il backbone,
+  senza calcolare i logit (col 1.4B 400 MB in meno).
 - **Caricamento dei pesi** (`nucleo/modelli.py`): il modello è costruito vuoto, allocato direttamente sul dispositivo e
   riempito leggendo i file `.safetensors` un tensore alla volta, senza mmap. Su Windows safetensors e transformers
   impegnano memoria virtuale (commit) pari all'intero file dei pesi mentre i pesi arrivano sulla GPU: col 1.4B in
@@ -216,7 +226,7 @@ prove/            script da riga di comando (vedi Note)
 - Sulla GPU, durante quel passaggio, il modello FP32 lascia spazio alla copia: va su CPU se la memoria virtuale
   di Windows (RAM + file di paging) basta, altrimenti (tipicamente col 1.4B) i suoi pesi vengono tolti e alla
   fine riletti dal disco. Il riquadro "Formato dei pesi" dice quale strada è stata usata.
-- `prove/` contiene cinque script da riga di comando:
+- `prove/` contiene questi script da riga di comando:
   - `prova_delta_modello.py`: Δ ricalcolato = Δ interno del modello in FP32/FP16/BF16, e modello FP32 intatto
     dopo la copia;
   - `fotografa_fasi.py cartella [--confronta riferimento] [--fasi 1,2]`: esegue le fasi in tutte le
@@ -231,6 +241,8 @@ prove/            script da riga di comando (vedi Note)
     delle librerie lo script lo segnala prima delle differenze;
   - `prova_soglie.py [--gpu]`: soglie di arrotondamento di ā verso 1 e verso 0, in modo esaustivo;
   - `prova_ricorrenza.py [--gpu]`: ricorrenza simulata identica bit a bit in FP32 e funzione originale ripristinata;
+  - `prova_blocchi.py [--gpu] [--modello 130m]`: ricorrenza a blocchi identica bit a bit a quella intera (logit del
+    modello e ricorrenza simulata B1/B2 in FP16, BF16 e FP32), con blocchi da 1, 7, 50 e 100 token;
   - `verifica_fusione.py nuova prove/fotografia_fasi_precedenti`: confrontava le Fasi 1–3 con la fotografia delle sei
     fasi precedenti (esito al momento della fusione: identiche). Usa "Solo FP32", che non esiste più: è storico e non
     va più eseguito.

@@ -34,11 +34,25 @@ def descrivi_formato(nome, dispositivo):
     return f"pesi in {nome}{emulato}, ricorrenza in FP32"
 
 
-# Impronta dei pesi FP32 calcolata sul dispositivo: somma dei bit (int64) e somma in FP64 di ogni parametro
+# Impronta dei pesi FP32 calcolata sul dispositivo: somma dei bit (int64) e somma in FP64 di ogni parametro, a pezzi
+# di BLOCCO_IMPRONTA valori. Intera, l'embedding del 1.4B in FP64 sarebbe un temporaneo da 786 MB sulla GPU proprio
+# quando i pesi FP32 sono appena stati riletti: col 1.4B a 2048 token era il punto in cui finiva la VRAM.
+# Si confrontano solo due impronte dello stesso modello calcolate allo stesso modo (prima e dopo la copia)
+BLOCCO_IMPRONTA = 2 ** 24
+
+
 def impronta(model):
     with torch.no_grad():
-        return [(nome, int(p.view(torch.int32).sum(dtype=torch.int64).item()), p.double().sum().item())
-                for nome, p in model.named_parameters()]
+        voci = []
+        for nome, p in model.named_parameters():
+            piatto = p.reshape(-1)
+            bit, somme = 0, []
+            for s in range(0, piatto.numel(), BLOCCO_IMPRONTA):
+                pezzo = piatto[s:s + BLOCCO_IMPRONTA]
+                bit += int(pezzo.view(torch.int32).sum(dtype=torch.int64).item())
+                somme.append(pezzo.double().sum().item())
+            voci.append((nome, bit, tuple(somme)))
+        return voci
 
 
 def _gb(model, tipo=None):

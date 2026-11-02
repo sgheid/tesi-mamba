@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from nucleo import grafica as g
 from nucleo.margini import ERR_MAX, ERR_MIN, N_ERR, REGIME_BASSO, mediana_errore
 from nucleo.precisione import delta_baseline
+from nucleo.scansione import discretizza, token_per_blocco
 
 # Formati della ricorrenza (Fase 5): il controllo FP32 non compare nel menu, lo usa prove/fotografa_fasi.py
 FORMATI_RICORRENZA = {"FP16": torch.float16, "BF16": torch.bfloat16}
@@ -177,43 +178,47 @@ def ricorrenza_in_formato(tipo, livello):
         B = B.transpose(1, 2)
         C = C.transpose(1, 2)
 
-        discrete_A = torch.exp(A[None, :, None, :] * dt[:, :, :, None])
-        discrete_B = dt[:, :, :, None] * B[:, None, :, :].float()
-        deltaB_u = discrete_B * hidden_states[:, :, :, None].float()
-        del discrete_B
-
-        abar_r = discrete_A.to(tipo)
-        nuovi = int(((abar_r == 1) & (discrete_A < 1)).sum().item())
-        if livello == "B1":
-            discrete_A = abar_r.to(discrete_A.dtype)
-            ssm_state = torch.zeros(batch_size, intermediate_size, A.shape[-1], dtype=input_dtype,
-                                    device=hidden_states.device)
-        else:
-            del discrete_A
-            deltaB_u = deltaB_u.to(tipo)
-            ssm_state = torch.zeros(batch_size, intermediate_size, A.shape[-1], dtype=tipo,
-                                    device=hidden_states.device)
+        # Discretizzazione a blocchi di token come in nucleo/scansione.py (un blocco solo se la memoria basta):
+        # stesse operazioni elemento per elemento, stesso ciclo sui token
+        passo = token_per_blocco(hidden_states, A.shape[-1])
+        tipo_stato = input_dtype if livello == "B1" else tipo
+        ssm_state = torch.zeros(batch_size, intermediate_size, A.shape[-1], dtype=tipo_stato,
+                                device=hidden_states.device)
+        nuovi = torch.zeros((), dtype=torch.int64, device=hidden_states.device)
         non_finiti = torch.zeros((), dtype=torch.int64, device=hidden_states.device)
         massimo = torch.zeros((), dtype=torch.float32, device=hidden_states.device)
 
         scan_outputs = []
-        for index in range(seq_len):
+        for s in range(0, seq_len, passo):
+            e = min(s + passo, seq_len)
+            discrete_A, deltaB_u = discretizza(hidden_states, dt, A, B, s, e)
+            abar_r = discrete_A.to(tipo)
+            nuovi += ((abar_r == 1) & (discrete_A < 1)).sum()
             if livello == "B1":
-                ssm_state = discrete_A[:, :, index] * ssm_state + deltaB_u[:, :, index]
+                discrete_A = abar_r.to(discrete_A.dtype)
             else:
-                ssm_state = (abar_r[:, :, index].float() * ssm_state.float() + deltaB_u[:, :, index].float()).to(tipo)
-            finito = torch.isfinite(ssm_state)
-            non_finiti += (~finito).sum()
-            massimo = torch.maximum(massimo, torch.where(finito, ssm_state, 0).abs().max().float())
-            scan_output = torch.matmul(ssm_state.to(input_dtype), C[:, index, :].unsqueeze(-1))
-            scan_outputs.append(scan_output[:, :, 0])
+                del discrete_A
+                deltaB_u = deltaB_u.to(tipo)
+            for j in range(e - s):
+                if livello == "B1":
+                    ssm_state = discrete_A[:, :, j] * ssm_state + deltaB_u[:, :, j]
+                else:
+                    ssm_state = (abar_r[:, :, j].float() * ssm_state.float() + deltaB_u[:, :, j].float()).to(tipo)
+                finito = torch.isfinite(ssm_state)
+                non_finiti += (~finito).sum()
+                massimo = torch.maximum(massimo, torch.where(finito, ssm_state, 0).abs().max().float())
+                scan_output = torch.matmul(ssm_state.to(input_dtype), C[:, s + j, :].unsqueeze(-1))
+                scan_outputs.append(scan_output[:, :, 0])
+            del abar_r, deltaB_u
+            if livello == "B1":
+                del discrete_A
         scan_output = torch.stack(scan_outputs, dim=-1)
 
         if D is not None:
             scan_output = scan_output + hidden_states * D[None, :, None]
         if z is not None:
             scan_output = scan_output * F.silu(z)
-        strati.append(dict(nuovi_1=nuovi, non_finiti_stato=int(non_finiti.item()), stato_max=massimo.item()))
+        strati.append(dict(nuovi_1=int(nuovi.item()), non_finiti_stato=int(non_finiti.item()), stato_max=massimo.item()))
         return scan_output
 
     modulo.mamba_selective_scan = sostituta
