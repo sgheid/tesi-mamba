@@ -48,6 +48,7 @@ class Colonna:
     titolo: str
     sottotitolo: str = ""
     formato: str = "sci"
+    secondaria: bool = False
 
 
 @dataclass
@@ -56,6 +57,7 @@ class Indicatore:
     valore: str
     nota: str = ""
     stato: Optional[str] = None
+    secondario: bool = False
 
 
 @dataclass
@@ -65,6 +67,7 @@ class Grafico:
     spiegazione: str = ""
     come_leggere: str = ""
     dati: Any = None
+    secondario: bool = False
 
 
 @dataclass
@@ -84,3 +87,25 @@ class Risultato:
 
 def valori(righe, chiave, f=None):
     return [f(r[chiave]) if f else r[chiave] for r in righe]
+
+
+# Indicatori che restano in primo piano anche se dichiarati secondari, quando segnalano un problema
+ALLARMI = ("non finit", "fuori dal cerchio", "instabili", "controllo", "soglie", "coerenza", "conteggio",
+           "formato dei pesi")
+
+
+# Gerarchia dei risultati: i risultati fondamentali in primo piano, le misure di contorno in un riquadro compresso.
+# indicatori: etichette; colonne: chiavi (valgono anche per la colonna affiancata con suffisso _r); grafici: inizio
+# del titolo. Gli indicatori secondari vengono spostati dopo i principali, nello stesso ordine.
+def gerarchia(ris, indicatori=(), colonne=(), grafici=()):
+    for ind in ris.indicatori:
+        allarme = ind.stato == "attenzione" and any(k in ind.etichetta.lower() for k in ALLARMI)
+        ind.secondario = ind.etichetta in indicatori and not allarme
+    ris.indicatori = [i for i in ris.indicatori if not i.secondario] + [i for i in ris.indicatori if i.secondario]
+    for c in ris.colonne:
+        base = c.chiave[:-2] if c.chiave.endswith("_r") else c.chiave
+        c.secondaria = c.chiave in colonne or base in colonne
+    for graf in ris.grafici:
+        graf.secondario = any(graf.titolo.startswith(t) for t in grafici)
+    ris.grafici = [x for x in ris.grafici if not x.secondario] + [x for x in ris.grafici if x.secondario]
+    return ris

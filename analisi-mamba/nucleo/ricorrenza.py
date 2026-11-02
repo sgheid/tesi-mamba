@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 
 from nucleo import grafica as g
-from nucleo.margini import ERR_MAX, ERR_MIN, N_ERR, mediana_errore
+from nucleo.margini import ERR_MAX, ERR_MIN, N_ERR, REGIME_BASSO, mediana_errore
 from nucleo.precisione import delta_baseline
 
 # Formati della ricorrenza (Fase 5): il controllo FP32 non compare nel menu, lo usa prove/fotografa_fasi.py
@@ -74,7 +74,9 @@ def poli_arrotondati(ctx, nomi, soglie):
         L, D = d.shape
         passo = max(1, 4_000_000 // (D * a32.shape[1]))
         r32 = dict(strato=i, su_1=0, su_1_esatto=0, in_0=0, totale=L * a32.numel())
-        c = {nome: dict(nuovi_1=0, nuovi_1_soglia=0, nuovi_0=0, nuovi_0_soglia=0, su_1=0, non_finiti=0,
+        # Modi con memoria non trascurabile sul testo: |a|·theta >= REGIME_BASSO, theta = somma dei Delta del canale
+        rilevante = d.double().sum(dim=0)[:, None] * (-a64) >= REGIME_BASSO
+        c = {nome: dict(nuovi_1=0, nuovi_1_rilevanti=0, nuovi_1_soglia=0, nuovi_0=0, nuovi_0_soglia=0, su_1=0, non_finiti=0,
                         err_nulli=0, err=torch.zeros(N_ERR, dtype=torch.float64, device=d.device),
                         tau=torch.zeros(N_TAU, dtype=torch.float64, device=d.device), tau_max=0.0)
              for nome in nomi}
@@ -94,6 +96,7 @@ def poli_arrotondati(ctx, nomi, soglie):
                 nuovi = uno_r & ~uno32
                 k["su_1"] += int(uno_r.sum().item())
                 k["nuovi_1"] += int(nuovi.sum().item())
+                k["nuovi_1_rilevanti"] += int((nuovi & rilevante).sum().item())
                 k["nuovi_1_soglia"] += int(((m32 <= s1) & (ab32 >= 0.5) & ~uno32).sum().item())
                 k["nuovi_0"] += int(((ar == 0.0) & ~zero32).sum().item())
                 k["nuovi_0_soglia"] += int(((ab32 <= s0) & ~zero32).sum().item())

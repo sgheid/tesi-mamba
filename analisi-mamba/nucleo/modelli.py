@@ -1,6 +1,8 @@
 import gc
+import glob
 import json
 import os
+import struct
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -112,8 +114,85 @@ def dispositivi_disponibili():
     return elenco + [("cpu", "CPU")]
 
 
-# Caricamento (FP32 se non indicato) con ripiego per transformers vecchi (torch_dtype) o senza accelerate (device_map)
+# Tipi dei tensori nell'intestazione di un file .safetensors
+_TIPI_SAFETENSORS = {"F64": torch.float64, "F32": torch.float32, "F16": torch.float16, "BF16": torch.bfloat16,
+                     "I64": torch.int64, "I32": torch.int32, "I16": torch.int16, "I8": torch.int8, "U8": torch.uint8,
+                     "BOOL": torch.bool}
+
+
+# Legge un file .safetensors un tensore alla volta, con letture normali dal disco (niente mmap). Su Windows sia
+# safetensors sia transformers aprono il file impegnando memoria virtuale (commit) pari all'intero file: col 1.4B sono
+# 4,6 GB in più proprio mentre i pesi arrivano sulla GPU, e se RAM + file di paging non bastano si ha l'errore 1455
+# ("file di paging troppo piccolo"). Così in memoria c'è un solo tensore alla volta (al più ~400 MB, l'embedding del 1.4B)
+def leggi_safetensors(file):
+    with open(file, "rb") as f:
+        n = struct.unpack("<Q", f.read(8))[0]
+        intestazione = json.loads(f.read(n))
+        voci = sorted(((k, v) for k, v in intestazione.items() if k != "__metadata__"),
+                      key=lambda kv: kv[1]["data_offsets"][0])
+        for nome, v in voci:
+            a, b = v["data_offsets"]
+            grezzo = torch.empty(b - a, dtype=torch.uint8)
+            vista = memoryview(grezzo.numpy())
+            f.seek(8 + n + a)
+            letti = 0
+            while letti < b - a:
+                k = f.readinto(vista[letti:])
+                if not k:
+                    raise OSError(f"{os.path.basename(file)}: file troncato in {nome}")
+                letti += k
+            yield nome, grezzo.view(_TIPI_SAFETENSORS[v["dtype"]]).reshape(v["shape"])
+
+
+# Modello costruito senza pesi (device "meta"), allocato direttamente sul dispositivo nel formato richiesto e
+# riempito tensore per tensore. Pesi e logit identici bit a bit a from_pretrained (verificato sul 1.4B in FP32,
+# FP16 e BF16); il picco di memoria virtuale scende di circa la dimensione del file dei pesi più grande
+def _carica_diretto(percorso, dispositivo, tipo):
+    from transformers import AutoConfig, MambaForCausalLM
+    file = sorted(glob.glob(os.path.join(percorso, "*.safetensors")))
+    if not file:
+        raise FileNotFoundError("nessun file .safetensors nella cartella")
+    cfg = AutoConfig.from_pretrained(percorso, local_files_only=True)
+    with torch.device("meta"):
+        model = MambaForCausalLM(cfg)
+    model = model.to(dtype=tipo).to_empty(device=dispositivo)
+    model.tie_weights()
+    destinazioni = dict(model.named_parameters(remove_duplicate=False))
+    destinazioni.update(model.named_buffers(remove_duplicate=False))
+    letti = set()
+    with torch.no_grad():
+        for f in file:
+            for nome, t in leggi_safetensors(f):
+                if nome in destinazioni:
+                    destinazioni[nome].copy_(t)
+                    letti.add(nome)
+    mancanti = {n for n, _ in list(model.named_parameters()) + list(model.named_buffers())} - letti
+    if mancanti:
+        raise KeyError(f"pesi non trovati nei file: {sorted(mancanti)[:5]}")
+    return model
+
+
+# Errore di memoria virtuale di Windows (1455: file di paging troppo piccolo), anche dentro altre eccezioni
+def _memoria_virtuale_esaurita(e):
+    return getattr(e, "winerror", None) == 1455 or "1455" in str(e) or "paging" in str(e).lower()
+
+
+MESSAGGIO_PAGING = ("Memoria virtuale di Windows esaurita (errore 1455, file di paging troppo piccolo): RAM + file di "
+                    "paging non bastano. Chiudi i programmi che occupano molta memoria (es. Docker Desktop, giochi, "
+                    "altri modelli aperti) o ingrandisci il file di paging, poi ricarica il modello.")
+
+
+# Caricamento (FP32 se non indicato): prima quello diretto, tensore per tensore; se fallisce per un motivo diverso
+# dalla memoria, from_pretrained con ripiego per transformers vecchi (torch_dtype) o senza accelerate (device_map)
 def _carica_pesi(percorso, dispositivo, tipo=torch.float32):
+    try:
+        return _carica_diretto(percorso, dispositivo, tipo)
+    except torch.cuda.OutOfMemoryError:
+        raise
+    except Exception as e:
+        if _memoria_virtuale_esaurita(e):
+            raise
+        libera()
     from transformers import MambaForCausalLM
     carica = lambda **kw: MambaForCausalLM.from_pretrained(percorso, local_files_only=True, **kw)
     try:
@@ -164,7 +243,8 @@ def carica_e_verifica(modello: ModelloLocale, dispositivo: str, avanzamento=lamb
         except torch.cuda.OutOfMemoryError:
             raise _Fallimento("Pesi caricati in FP32", "Memoria della GPU esaurita: il modello non entra nella VRAM.")
         except Exception as e:
-            raise _Fallimento("Pesi caricati in FP32", errore(e))
+            raise _Fallimento("Pesi caricati in FP32",
+                              f"{MESSAGGIO_PAGING} ({errore(e)})" if _memoria_virtuale_esaurita(e) else errore(e))
         superato("Pesi caricati in FP32", f"in {time.time() - t0:.1f} s")
 
         avanzamento(3, "Struttura interna")

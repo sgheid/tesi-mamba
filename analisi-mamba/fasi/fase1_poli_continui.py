@@ -9,7 +9,7 @@ from nucleo import confronto as cf
 from nucleo import grafica as g
 from nucleo.formato import fmt_int, fmt_perc, fmt_sci
 from nucleo.precisione import FORMATI, descrivi_formato
-from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Risultato, valori
+from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Risultato, gerarchia, valori
 
 SOGLIA = 0.01  # un polo è "molto perturbato" se |a| cambia di più dell'1%
 PASSO = 0.25   # binning di |a| a quarti di decade
@@ -97,37 +97,14 @@ def _esaminati(ctx, totale):
 
 
 def esegui(ctx):
-    nome = cf.formato_confronto(ctx)
-    return _solo_fp32(ctx) if nome is None else _con_confronto(ctx, nome)
+    return _con_confronto(ctx, cf.formato_confronto(ctx))
 
 
-# Solo FP32: il calcolo della vecchia Fase 1, senza seconda copia
-def _solo_fp32(ctx):
-    righe, log_abs = _poli(ctx)
-    lento, veloce, instabili, totale, decadi = _sintesi(righe)
-
-    indicatori = [
-        _esaminati(ctx, totale),
-        Indicatore("Poli instabili (a ≥ 0)", fmt_int(instabili),
-                   "tutti i modi sono asintoticamente stabili" if instabili == 0
-                   else "esistono modi non stabili", "ok" if instabili == 0 else "attenzione"),
-        Indicatore("Polo più lento", fmt_sci(lento["a_max"]),
-                   f"strato {lento['strato']}, τ = {fmt_sci(lento['tau'])}"),
-        Indicatore("Polo più veloce", fmt_sci(veloce["a_min"]), f"strato {veloce['strato']}"),
-        Indicatore("Ampiezza dello spettro", f"{decadi:.1f} decadi",
-                   "all'inizializzazione: 1.2 decadi (da −1 a −16)"),
-    ]
-    return Risultato(
-        codice="1",
-        titolo="Fase 1 - Poli continui  a = -exp(A_log)",
-        descrizione="Letti dai pesi del modello: non dipendono dal testo.",
-        colonne=COLONNE,
-        righe=righe,
-        indicatori=indicatori,
-        legenda=LEGENDA,
-        grafici=[_grafico_spettro(righe), _grafico_distribuzione(log_abs)],
-        evidenzia=_evidenzia(lento, veloce),
-    )
+# Secondari: contorno e controlli di costruzione; in primo piano spettro, polo più lento ed errore su a
+SECONDARI = dict(
+    indicatori=("Poli continui esaminati", "Poli instabili (a ≥ 0)", "Polo più veloce", "Errore entro il limite teorico"),
+    colonne=("a_min", "tau", "instabili", "err_A_max", "a_peggiore", "oltre"),
+    grafici=("Errore relativo su a per strato",))
 
 
 # FP32 e formato ridotto affiancati, più gli errori della vecchia Fase 3a
@@ -152,7 +129,7 @@ def _con_confronto(ctx, nome):
         cf.indicatore("Ampiezza dello spettro", decadi, decadi_r, lambda x: f"{x:.1f} decadi", nome),
     ] + [i for i in errori.indicatori if i.etichetta != "Poli continui esaminati"]
 
-    return Risultato(
+    return gerarchia(Risultato(
         codice="1",
         titolo=f"Fase 1 - Poli continui  a = -exp(A_log), FP32 contro {nome}",
         descrizione=f"Letti dai pesi del modello: non dipendono dal testo. {DESCRIZIONE_CONFRONTO}",
@@ -166,7 +143,7 @@ def _con_confronto(ctx, nome):
                 + errori.grafici,
         evidenzia=cf.evidenze_unite(_evidenzia(lento, veloce), errori.evidenzia),
         note_formato="FP32 e " + errori.note_formato,
-    )
+    ), **SECONDARI)
 
 
 def _grafico_spettro(righe, righe_r=None, nome=None):

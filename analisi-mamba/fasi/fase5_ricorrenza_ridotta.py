@@ -11,7 +11,7 @@ from nucleo import ricorrenza as rc
 from nucleo import uscita as u
 from nucleo.formato import fmt_int, fmt_perc, fmt_sci
 from nucleo.margini import ERR_MAX, ERR_MIN, N_ERR, mediana_errore
-from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Parametro, Risultato, valori
+from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Parametro, Risultato, gerarchia, valori
 
 SPIEGAZIONE = r"""
 **Attenzione: è un caso limite, non il comportamento dei runtime reali.** In `transformers` (e nei kernel di
@@ -34,6 +34,19 @@ a $2^{-12} \approx 2{,}4\cdot10^{-4}$: tutti i modi con memoria oltre circa 4 00
 **Esempio.** Un modo con $1-\bar a = 10^{-4}$ dimentica in circa $1/10^{-4} = 10\,000$ token. In FP16 il suo
 $\bar a = 0{,}9999$ si arrotonda a 1, perché $10^{-4} < 2^{-12} \approx 2{,}44\cdot10^{-4}$: lo stato accumula
 senza fine. La colonna "memoria persa" riporta proprio questo $\tau = 1/(1-\bar a)$ dei poli che finiscono su 1.
+
+**Quali poli nuovi contano.** Come nella Fase 3, un polo portato a 1 conta solo se il suo modo, su questo testo, avrebbe
+dimenticato qualcosa: i **nuovi su 1 potenzialmente rilevanti** sono quelli nei modi con $|a|\theta \ge 0{,}1$, con
+$\theta = \sum_t \Delta_t$ la somma dei passi del canale sul testo.
+
+**Come cresce l'errore.** Se un modo diventa integratore, la differenza di stato rispetto a FP32 cresce circa
+linearmente con i token, e la KL, quadratica negli errori piccoli, cresce circa come $t^2$. La **pendenza** della retta di
+$\log \mathrm{KL}$ contro $\log t$ lo rende un numero: circa 0 se l'errore resta costante (come nella Fase 4), circa 2
+se si accumula nei modi su 1. **Esempio:** pendenza 2 vuol dire che da 1 000 a 2 000 token la KL si quadruplica.
+
+**Stato massimo.** Il più grande $|h|$ è misurato con la ricorrenza FP32 originale, in B1 e in B2: in aritmetica esatta lo
+stato di Mamba è una media pesata degli ingressi e resta limitato (Capitolo 2); se i poli su 1 diventano integratori
+lo stato può crescere, e il confronto tra le tre colonne lo mostra.
 """
 
 PARAMETRO = Parametro("formato_ricorrenza", "Formato della ricorrenza", list(rc.FORMATI_RICORRENZA), "FP16",
@@ -44,6 +57,7 @@ COLONNE = [Colonna("strato", "Strato", "", "int"),
            Colonna("su_1_fp32", "Poli su 1 in FP32", "riferimento, come Fase 3", "int"),
            Colonna("nuovi_1", "Nuovi su 1", "abar32 < 1, arrotondato = 1", "int"),
            Colonna("perc_nuovi_1", "Nuovi su 1", "% dello strato", "perc"),
+           Colonna("nuovi_1_rilevanti", "Nuovi su 1 potenzialmente rilevanti", "modo con |a|θ ≥ 0,1", "int"),
            Colonna("tau_mediana", "Memoria persa", "mediana di 1/(1-abar), token", "sci"),
            Colonna("tau_max", "Memoria persa", "massimo, token", "sci"),
            Colonna("nuovi_0", "Nuovi a 0", "abar32 > 0, arrotondato = 0", "int"),
@@ -60,7 +74,21 @@ LEGENDA = [("Poli su 1 in FP32", "Poli (token × canali × stati) con abar = 1 g
                          "2^-134): modi senza memoria, innocui per la stabilità."),
            ("Errore tipico sul margine", "Mediana di |(1 - abar_r)/(1 - abar32) - 1| sui poli non già su 1; per i nuovi "
                                          "su 1 vale 1. Istogramma a centesimi di decade."),
+           ("Nuovi su 1 potenzialmente rilevanti", "Nuovi su 1 nei modi con |a|θ ≥ 0,1 (θ = somma dei Delta del canale sul "
+                                                   "testo): modi che in FP32 dimenticano almeno il 10% dello stato sul "
+                                                   "testo, quindi per cui diventare integratori cambia davvero qualcosa."),
            ("Non finiti", "Poli inf/NaN dopo l'arrotondamento: contati ed esclusi.")]
+
+
+# In primo piano: poli nuovi su 1 (quanti e quali contano), memoria persa, effetto sull'uscita, pendenza della KL e
+# stato massimo; in secondo piano verifiche interne e metriche ridondanti
+SECONDARI = dict(
+    indicatori=("Soglie verificate", "Conteggio dalle soglie", "Strati con più poli nuovi", "Poli nuovi a 0",
+                "Errore tipico sul margine 1 − ā", "Poli su 1 in FP32 (riferimento)", "Non finiti", "Dispositivo",
+                "KL massima B1 · B2", "Accordo top-1 B1 · B2", "ΔNLL media B1 · B2", "Logit non finiti B1 · B2",
+                "Coerenza Parte A / B1"),
+    colonne=("su_1_fp32", "tau_max", "nuovi_0", "err_mediana", "non_finiti", "nuovi_1_b1", "non_finiti_stato_b2"),
+    grafici=("Errore relativo sul margine", "Distribuzione della KL sulle posizioni"))
 
 
 def esegui(ctx):
@@ -70,13 +98,14 @@ def esegui(ctx):
     nomi = list(rc.FORMATI_RICORRENZA) + ([nome] if controllo else [])
     riferimento, per_formato = rc.poli_arrotondati(cf.tratto(ctx, 0.0, 0.4), nomi,
                                                    {k: (soglie[k]["soglia_1"], soglie[k]["soglia_0"]) for k in nomi})
-    uscite = _parte_b(ctx, rc.TIPI[nome])
-    righe = [dict(r, su_1_fp32=r32["su_1"], nuovi_1_b1=b1["nuovi_1"], stato_max_b2=b2["stato_max"],
-                  non_finiti_stato_b2=b2["non_finiti_stato"])
-             for r, r32, b1, b2 in zip(per_formato[nome], riferimento, uscite["B1"]["strati"], uscite["B2"]["strati"])]
+    uscite, strati32 = _parte_b(ctx, rc.TIPI[nome])
+    righe = [dict(r, su_1_fp32=r32["su_1"], nuovi_1_b1=b1["nuovi_1"], stato_max_fp32=s32["stato_max"],
+                  stato_max_b1=b1["stato_max"], stato_max_b2=b2["stato_max"], non_finiti_stato_b2=b2["non_finiti_stato"])
+             for r, r32, s32, b1, b2 in zip(per_formato[nome], riferimento, strati32, uscite["B1"]["strati"],
+                                            uscite["B2"]["strati"])]
     n = len(righe)
     somma = lambda chiave, elenco=righe: sum(valori(elenco, chiave))
-    totale, nuovi = somma("totale"), somma("nuovi_1")
+    totale, nuovi, rilevanti = somma("totale"), somma("nuovi_1"), somma("nuovi_1_rilevanti")
     s = soglie[nome]
     soglie_ok = all(v["ok"] for v in soglie.values())
     dal_conteggio = all(somma("nuovi_1", per_formato[k]) == somma("nuovi_1_soglia", per_formato[k])
@@ -97,6 +126,11 @@ def esegui(ctx):
                    f"{fmt_perc(nuovi / totale)} dei poli · " + " · ".join(
                        f"{k}: {fmt_int(somma('nuovi_1', per_formato[k]))}" for k in rc.FORMATI_RICORRENZA),
                    "attenzione" if nuovi else "ok"),
+        Indicatore("Nuovi su 1 potenzialmente rilevanti", fmt_int(rilevanti),
+                   (f"{fmt_perc(rilevanti / nuovi)} dei nuovi su 1 cadono in modi con |a|θ ≥ 0,1, cioè con memoria non "
+                    f"trascurabile su questo testo · " if nuovi else "")
+                   + " · ".join(f"{k}: {fmt_int(somma('nuovi_1_rilevanti', per_formato[k]))}" for k in rc.FORMATI_RICORRENZA),
+                   "attenzione" if rilevanti else "ok"),
         Indicatore("Conteggio dalle soglie", "coincide" if dal_conteggio else "NON coincide",
                    "nuovi su 1 e a 0 contati sia arrotondando sia con le soglie verificate",
                    "ok" if dal_conteggio else "attenzione"),
@@ -121,7 +155,7 @@ def esegui(ctx):
                                      "abar arrotondato a FP32: nessun polo cambia; B1 e B2 danno KL nulla e NLL identiche "
                                      "bit a bit", "ok" if ok else "attenzione"))
 
-    return Risultato(
+    return gerarchia(Risultato(
         codice="5",
         titolo=f"Fase 5 - Caso limite: ricorrenza in {nome}",
         descrizione="Parte A: abar = exp(Delta·a) in FP32 come il modello, arrotondato al formato; margini esatti in FP64. "
@@ -135,7 +169,7 @@ def esegui(ctx):
                  _grafico_istogramma_b(uscite, nome), _grafico_stato(righe, nome)],
         evidenzia={r["strato"]: f"n. {k} per poli nuovi su 1" for k, r in enumerate(peggiori, start=1)},
         note_formato=f"pesi FP32, abar arrotondato a {nome}; margini in FP64 · dispositivo: {ctx.nome_dispositivo}",
-    )
+    ), **SECONDARI)
 
 
 def _colore(k, nome):
@@ -241,12 +275,18 @@ def _grafico_errore(per_formato, nome):
 # Parte B: due passaggi del modello FP32 condiviso con la ricorrenza simulata (B1, B2), confrontati con il passaggio
 # FP32 originale con le metriche della Fase 4 (stesso lm_head FP32)
 COLONNE_B = [Colonna("nuovi_1_b1", "Nuovi su 1 in B1", "contati nella ricorrenza simulata", "int"),
+             Colonna("stato_max_fp32", "Stato massimo in FP32", "max |h|, ricorrenza originale", "sci"),
+             Colonna("stato_max_b1", "Stato massimo in B1", "max |h| finito", "sci"),
              Colonna("stato_max_b2", "Stato massimo in B2", "max |h| finito", "sci"),
              Colonna("non_finiti_stato_b2", "Stato non finito in B2", "valori inf/NaN, tutti i passi", "int")]
 
 LEGENDA_B = [("Nuovi su 1 in B1", "Poli nuovi su 1 contati dentro la ricorrenza simulata B1. Nello strato 0 coincide con "
                                   "la Parte A; negli strati successivi può differire di poco, perché l'arrotondamento "
                                   "degli strati precedenti cambia il Delta."),
+             ("Stato massimo in FP32", "Il più grande |h| dello strato su tutti i passi, con la ricorrenza FP32 originale "
+                                       "(simulata in FP32, identica bit a bit): il riferimento per B1 e B2."),
+             ("Stato massimo in B1", "Il più grande |h| finito dello strato su tutti i passi, con solo ā arrotondato al "
+                                     "formato e lo stato in FP32."),
              ("Stato massimo in B2", "Il più grande |h| finito dello strato su tutti i passi, con lo stato nel formato "
                                      "ridotto. In FP16 oltre 65 504 lo stato diventa infinito."),
              ("Stato non finito in B2", "Valori dello stato inf/NaN, sommati su tutti i passi: con l'overflow il modello "
@@ -257,16 +297,20 @@ COLORI_B = {"B1": g.ARANCIO_CHIARO, "B2": g.ARANCIO}
 
 
 def _parte_b(ctx, tipo):
-    h32 = u.stato_finale_fp32(cf.tratto(ctx, 0.4, 0.5))
+    h32 = u.stato_finale_fp32(cf.tratto(ctx, 0.4, 0.45))
     W32 = ctx.model.lm_head.weight
+    # Stato massimo con la ricorrenza FP32: la ricorrenza simulata in FP32 è identica bit a bit all'originale
+    # (prove/prova_ricorrenza.py), e a differenza dell'originale misura il massimo di |h| strato per strato
+    ctx.avanzamento(0.45, "FP32: stato massimo con la ricorrenza originale")
+    _, strati32 = rc.stato_finale_simulato(ctx, torch.float32, "B1")
     uscite = {}
     for k, livello in enumerate(rc.LIVELLI):
-        da = 0.5 + 0.25 * k
+        da = 0.55 + 0.225 * k
         ctx.avanzamento(da, f"{NOMI_B[livello]}: passaggio con la ricorrenza simulata")
         h, strati = rc.stato_finale_simulato(ctx, tipo, livello)
-        m = u.metriche(h32, W32, ctx.ids, h, W32, cf.tratto(ctx, da + 0.2, da + 0.25).avanzamento)
+        m = u.metriche(h32, W32, ctx.ids, h, W32, cf.tratto(ctx, da + 0.18, da + 0.225).avanzamento)
         uscite[livello] = dict(m=m, s=u.sintesi(m), strati=strati)
-    return uscite
+    return uscite, strati32
 
 
 def _indicatori_b(uscite, righe, nome):
@@ -274,7 +318,10 @@ def _indicatori_b(uscite, righe, nome):
     tipo = rc.TIPI[nome]
     limite = torch.finfo(tipo).max
     stato_max = max(valori(righe, "stato_max_b2"))
+    stato_max_32, stato_max_b1 = max(valori(righe, "stato_max_fp32")), max(valori(righe, "stato_max_b1"))
     non_finiti_stato = sum(valori(righe, "non_finiti_stato_b2"))
+    pendenze = {livello: u.pendenza_loglog(v["m"]["kl"]) for livello, v in uscite.items()}
+    fmt_p = lambda p: "-" if not math.isfinite(p) else f"{p:+.2f}"
     coerente = righe[0]["nuovi_1"] == righe[0]["nuovi_1_b1"]
     quarti = {}
     for livello, v in uscite.items():
@@ -298,9 +345,14 @@ def _indicatori_b(uscite, righe, nome):
         Indicatore("KL: primo → ultimo quarto del testo",
                    " · ".join(f"{l} {fmt_sci(a)} → {fmt_sci(b)}" for l, (a, b) in quarti.items()),
                    "un aumento indica errore che si accumula con il contesto"),
-        Indicatore("Stato in B2", f"max |h| {fmt_sci(stato_max)} · non finiti {fmt_int(non_finiti_stato)}",
-                   f"massimo finito di {nome}: {fmt_sci(limite)}",
-                   "ok" if non_finiti_stato == 0 else "attenzione"),
+        Indicatore("Pendenza della KL lungo il testo, B1 · B2",
+                   f"{fmt_p(pendenze['B1'][0])} · {fmt_p(pendenze['B2'][0])}",
+                   u.descrivi_pendenza(*pendenze["B1"]) + f" · R² di B2 = {pendenze['B2'][1]:.2f}"
+                   if math.isfinite(pendenze["B1"][0]) else u.descrivi_pendenza(*pendenze["B1"])),
+        Indicatore("Stato massimo |h|: FP32 → B1 → B2",
+                   f"{fmt_sci(stato_max_32)} → {fmt_sci(stato_max_b1)} → {fmt_sci(stato_max)}",
+                   f"su tutti gli strati e i token · valori non finiti in B2: {fmt_int(non_finiti_stato)} · massimo finito "
+                   f"di {nome}: {fmt_sci(limite)}", "ok" if non_finiti_stato == 0 else "attenzione"),
         Indicatore("Logit non finiti B1 · B2", f"{fmt_int(s1['non_finite'])} · {fmt_int(s2['non_finite'])}",
                    "posizioni escluse dalle metriche",
                    "ok" if s1["non_finite"] == s2["non_finite"] == 0 else "attenzione"),
@@ -373,30 +425,40 @@ def _grafico_istogramma_b(uscite, nome):
 def _grafico_stato(righe, nome):
     x, y = valori(righe, "strato"), valori(righe, "stato_max_b2")
     limite = torch.finfo(rc.TIPI[nome]).max
-    fig = g.nuova_figura("Strato", "Massimo |stato| in B2  (scala logaritmica)", log_y=True)
-    fig.add_trace(go.Scatter(x=x, y=[v if v > 0 else None for v in y], mode="lines+markers", name="max |h|",
-                             line=dict(color=g.ARANCIO, width=2.2), marker=g.marcatore(7, g.ARANCIO),
-                             customdata=valori(righe, "non_finiti_stato_b2"),
-                             hovertemplate="max |h| %{y:.2e}<br>%{customdata:,} valori non finiti<extra></extra>"))
-    positivi = [v for v in y if v > 0]
+    fig = g.nuova_figura("Strato", "Massimo |stato|  (scala logaritmica)", log_y=True)
+    serie = [("FP32", "stato_max_fp32", g.BLU), ("B1", "stato_max_b1", g.ARANCIO_CHIARO), ("B2", "stato_max_b2", g.ARANCIO)]
+    positivi = []
+    for etichetta, chiave, colore in serie:
+        v = valori(righe, chiave)
+        fig.add_trace(go.Scatter(x=x, y=[w if w > 0 else None for w in v], mode="lines+markers",
+                                 name=f"max |h| {etichetta}", line=dict(color=colore, width=2.2),
+                                 marker=g.marcatore(7, colore),
+                                 hovertemplate=f"{etichetta}: max |h| %{{y:.2e}}<extra></extra>"))
+        positivi += [w for w in v if w > 0]
     if limite < 1e10:
         g.linea_soglia(fig, "y", limite, f"massimo finito {nome} = {limite:,.0f}".replace(",", " "))
         positivi.append(limite)
     if positivi:
         g.scala_log(fig, "y", min(positivi), max(positivi))
-    fig.update_layout(showlegend=False)
     g.asse_strati(fig, len(x))
     return Grafico(
-        f"Stato più grande per strato, con lo stato in {nome} (B2)", fig,
-        "Il più grande valore assoluto dello stato h su tutti i token e i canali, per strato.",
+        f"Stato più grande per strato: FP32, B1 e B2 in {nome}", fig,
+        "Il più grande valore assoluto dello stato h su tutti i token e i canali, per strato, con la ricorrenza FP32 "
+        "originale e con le due ricorrenze simulate.",
         f"""
-- Con i poli portati a 1 lo stato non decade più e può crescere token dopo token.
+- **Blu** = ricorrenza FP32 originale, **arancione chiaro** = B1 (solo $\\bar a$ in {nome}), **arancione** = B2 (anche
+  lo stato in {nome}).
+- In FP32 lo stato è una media pesata degli ingressi e resta limitato (Capitolo 2). Con i poli portati a 1 lo stato non
+  decade più e può crescere token dopo token: se le linee arancioni stanno sopra la blu, gli integratori fanno crescere
+  lo stato; se B2 sta sotto B1, l'arrotondamento dello stato assorbe i contributi piccoli e frena la crescita.
 - **Linea rossa** (solo FP16) = 65 504, il più grande numero finito di FP16: un punto che la raggiunge vuol dire
   overflow, cioè stato infinito. BF16 ha la stessa gamma di FP32 (circa $3\\cdot10^{{38}}$) e non ha questo problema.
 - **Esempio di lettura:** un massimo di $10^3$ in uno strato è lontano dal limite di FP16; ma con un testo dieci volte
   più lungo uno stato che cresce linearmente arriverebbe a $10^4$, vicino all'overflow.
 """,
-        pd.DataFrame({"strato": x, "max |h| B2": y, "valori non finiti B2": valori(righe, "non_finiti_stato_b2"),
+        pd.DataFrame({"strato": x, "max |h| FP32": valori(righe, "stato_max_fp32"),
+                      "max |h| B1": valori(righe, "stato_max_b1"), "max |h| B2": y,
+                      "valori non finiti B2": valori(righe, "non_finiti_stato_b2"),
                       "nuovi su 1 B1": valori(righe, "nuovi_1_b1")}))
 
 

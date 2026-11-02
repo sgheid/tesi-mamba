@@ -9,6 +9,7 @@ from datetime import datetime
 import streamlit as st
 
 from fasi import carica_fasi
+from nucleo import corpora
 from nucleo import grafica as g
 from nucleo.excel import crea_excel, nome_file, nome_file_unico, salva_excel, salva_excel_unico
 from nucleo.formato import FORMATI, fmt_int
@@ -164,6 +165,19 @@ st.markdown("""
 
   [class*="st-key-vista_"] {margin: 4px 0 6px 0;}
 
+  .articolo {background: var(--superficie-2); border: 1px solid var(--linea); border-radius: 12px;
+             padding: 12px 15px; margin: 4px 0 8px 0;}
+  .articolo .tit {font-weight: 650; color: var(--notte); font-size: 1.02rem; line-height: 1.3;}
+  .articolo .meta {display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: 0.8rem;
+                   color: var(--testo-2);}
+  .articolo .meta i {font-style: normal; color: var(--tenue); margin-right: 5px; font-size: 0.72rem;
+                     text-transform: uppercase; letter-spacing: 0.06em;}
+  .articolo a {color: var(--blu-chiaro);}
+  .visto {display: inline-block; font: 600 0.7rem var(--mono); padding: 2px 9px; border-radius: 999px;
+          white-space: nowrap;}
+  .visto.mai {background: rgba(60,207,115,0.14); color: #7ee2a3;}
+  .visto.forse {background: rgba(245,184,61,0.16); color: #ffd27a;}
+
   .tabella-wrap {max-height: 640px; overflow: auto; background: var(--superficie); border: 1px solid var(--linea);
                  border-radius: 14px; box-shadow: var(--ombra); margin: 4px 0 8px 0;}
   table.tabella {width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.88rem; margin: 0;}
@@ -204,7 +218,7 @@ PREDEFINITI = dict(cartella=cartella_cache_predefinita(), model=None, tok=None, 
 for chiave, valore in PREDEFINITI.items():
     st.session_state.setdefault(chiave, valore)
 
-FONTI = ["Testo di prova", "Incolla un testo", "File .txt"]
+FONTI = ["Testo di prova", "Estrai da un corpus", "Scrivi o incolla", "File .txt"]
 
 
 def html_sicuro(testo):
@@ -298,12 +312,13 @@ def carica_modello(modello, dispositivo):
     disegna_timeline()
 
 
-# Un testo nuovo rende inutili i passaggi a bassa precisione in cache (Fasi 2 e 3)
-def imposta_testo(grezzo, fonte, max_token):
+# Un testo nuovo rende inutili i passaggi a bassa precisione in cache (Fasi 2 e 3).
+# dettagli: righe (etichetta, valore) sulla provenienza del testo, per l'Excel (testi estratti da un corpus)
+def imposta_testo(grezzo, fonte, max_token, dettagli=None):
     svuota_cache()
     ids, token, testo, n_originali = prepara(st.session_state.tok, grezzo, st.session_state.dispositivo, max_token)
     st.session_state.testo = dict(grezzo=grezzo, fonte=fonte, max_token=max_token, ids=ids, token=token,
-                                  testo=testo, n_originali=n_originali)
+                                  testo=testo, n_originali=n_originali, dettagli=dettagli or [])
     st.session_state.orari["testo"] = datetime.now()
     disegna_timeline()
 
@@ -348,7 +363,7 @@ def esegui_fase(fase, parametri, avanzamento):
         modello=info["nome"], percorso=info["percorso"], commit=info["commit"],
         struttura=f"{info['strati']} strati × {info['canali']} canali × {info['stati']} stati",
         dispositivo=nome_disp, data=datetime.now(), durata=time.time() - t0, parametri=parametri,
-        testo=t.get("testo"), fonte_testo=t.get("fonte"), versioni=versioni(),
+        testo=t.get("testo"), fonte_testo=t.get("fonte"), dettagli_testo=t.get("dettagli", []), versioni=versioni(),
         n_token=int(t["ids"].shape[1]) if t else None)
     return ris, None
 
@@ -454,11 +469,13 @@ def titolo_con_legenda(titolo, spiegazione, legenda, etichetta="ⓘ Come leggere
             st.markdown(legenda)
 
 
-# Tabella per strato in HTML: stessi numeri dell'Excel, legenda nei tooltip delle intestazioni, righe citate in ambra
-def tabella(ris):
+# Tabella per strato in HTML: stessi numeri dell'Excel, legenda nei tooltip delle intestazioni, righe citate in ambra.
+# Con colonne=None tutte le colonne del risultato
+def tabella(ris, colonne=None):
+    colonne = ris.colonne if colonne is None else colonne
     legenda = dict(ris.legenda)
     intestazioni = []
-    for j, c in enumerate(ris.colonne):
+    for j, c in enumerate(colonne):
         aiuto = legenda.get(c.sottotitolo) or legenda.get(c.titolo)
         titolo = html_sicuro(c.titolo)
         if aiuto:
@@ -472,7 +489,7 @@ def tabella(ris):
     righe = []
     for r in ris.righe:
         celle = []
-        for c in ris.colonne:
+        for c in colonne:
             valore = html_sicuro(FORMATI[c.formato][0](r.get(c.chiave)))
             if c.chiave == "strato":
                 celle.append(f"<td class='centro'><span class='badge-strato'>{valore}</span></td>")
@@ -515,26 +532,41 @@ def mostra_risultato(ris, id_vista):
     mostra_html("<div class='contesto'>" + "".join(f"<span><i>{e}</i>{html_sicuro(v)}</span>" for e, v in voci)
                 + "</div>")
 
-    riquadri(ris.indicatori)
+    # Risultati fondamentali in primo piano, misure di contorno in un riquadro compresso
+    principali = [x for x in ris.indicatori if not x.secondario]
+    secondari = [x for x in ris.indicatori if x.secondario]
+    riquadri(principali)
+    if secondari:
+        with st.expander(f"Misure secondarie ({len(secondari)})", icon="🗂"):
+            riquadri(secondari)
 
     vista = st.segmented_control("Vista", VISTE, default=VISTE[0], key="vista",
                                  label_visibility="collapsed") or VISTE[0]
     if vista == VISTE[0]:
-        for k, graf in enumerate(ris.grafici):
+        def disegna(k, graf):
             titolo_con_legenda(graf.titolo, graf.spiegazione, graf.come_leggere)
             with st.container(border=True):
                 st.plotly_chart(graf.figura, width="stretch", config=g.CONFIG, theme=None,
                                 key=f"grafico_{id_vista}_{k}")
-        st.caption("Suggerimento: l'icona a forma di fotocamera sopra ogni grafico salva un PNG ad alta "
-                   "risoluzione, pronto per relazioni e pubblicazioni. Trascinando si ingrandisce; "
-                   "doppio clic per tornare indietro.")
+        secondari = [(k, x) for k, x in enumerate(ris.grafici) if x.secondario]
+        for k, graf in enumerate(ris.grafici):
+            if not graf.secondario:
+                disegna(k, graf)
+        if secondari:
+            with st.expander(f"Grafici secondari ({len(secondari)})", icon="🗂"):
+                for k, graf in secondari:
+                    disegna(k, graf)
     elif vista == VISTE[1]:
         titolo_con_legenda(ris.titolo, ris.descrizione,
                            "\n".join(f"- **{nome}** — {spiegazione}" for nome, spiegazione in ris.legenda),
                            "ⓘ Legenda colonne")
-        tabella(ris)
+        principali = [c for c in ris.colonne if not c.secondaria]
+        tabella(ris, principali)
         st.caption("Passa il mouse sulle intestazioni sottolineate per la spiegazione della colonna."
                    + (" Le righe in ambra sono quelle citate nella colonna Nota." if ris.evidenzia else ""))
+        if len(principali) < len(ris.colonne):
+            with st.expander(f"Tabella completa ({len(ris.colonne)} colonne, come nell'Excel)", icon="🗂"):
+                tabella(ris)
     else:
         if i.get("testo"):
             st.text_area("Testo analizzato", i["testo"], height=260, disabled=True, label_visibility="collapsed",
@@ -613,8 +645,8 @@ def _nodo_testo():
         return "fatto", _nodo(2, "Testo", "fatto", "pronto",
                               [f"<b>{fmt_int(n)} token</b>{troncato}",
                                f"{html_sicuro(t['fonte'])} · {_ora('testo')}"], attivo)
-    return "attesa", _nodo(2, "Testo", "attesa", "da scegliere", ["Testo di prova, incollato", "o da file .txt"],
-                           attivo)
+    return "attesa", _nodo(2, "Testo", "attesa", "da scegliere", ["Testo di prova, da un corpus,",
+                                                                   "scritto o da file .txt"], attivo)
 
 
 # Una tacca per analisi, raggruppate per fase; il title dice esito e durata
@@ -682,7 +714,8 @@ def disegna_timeline(in_corso=None):
 PASSI = [("01", "Carica il modello", "Scegli un modello Mamba-1 dalla cartella dei modelli scaricati. Viene caricato "
           "<b>in FP32</b> su GPU o CPU e verificato: architettura, tokenizer, presenza di A_log, x_proj e dt_proj, "
           "valori finiti e una prova di lettura."),
-         ("02", "Scegli il testo", "Testo di prova, incollato o da file .txt, diviso in token fino al limite che imposti. "
+         ("02", "Scegli il testo", "Testo di prova, articolo estratto da un corpus (WikiText-2 o notizie BBC mai viste "
+          "dal modello), scritto o da file .txt, diviso in token fino al limite che imposti. "
           "Le fasi <b>2 (Δ) e 3 (margini)</b> lo fanno leggere al modello per misurare il passo Δ, che dipende "
           "dall'input; la <b>1 (poli continui)</b> usa solo i pesi."),
          ("03", "Leggi i risultati", "Ogni fase gira <b>solo in FP32</b> e <b>a confronto con FP16 e BF16</b>, seguita "
@@ -695,7 +728,7 @@ PASSI = [("01", "Carica il modello", "Scegli un modello Mamba-1 dalla cartella d
 def pagina_modello(fasi):
     hero("Analisi spettrale di modelli state-space", "Analisi dei modi di Mamba",
          "Misura poli, passi di campionamento e margini di stabilità di un modello Mamba-1, strato per strato. "
-         "Tutto gira sul tuo PC, senza connessione.")
+         "Tutto gira in locale, senza connessione.")
     capacita = "".join(f"<span>{html_sicuro(f.nome)}</span>" for f in fasi) + "<span>Esportazione in Excel</span>"
     mostra_html(f"<div class='capacita'>{capacita}</div>")
     passi = "".join(f"<div class='passo'><div class='num'>{n}</div><div class='tit'>{t}</div>"
@@ -748,31 +781,109 @@ def pagina_modello(fasi):
         st.error("Il modello non è stato caricato: vedi il controllo non superato qui sopra.")
 
 
+# Token di ogni articolo di un corpus, contati una volta per corpus e tokenizer e tenuti per la sessione
+def token_corpus(corpus):
+    cache = st.session_state.setdefault("token_corpora", {})
+    k = (corpus["percorso"], os.path.getmtime(corpus["percorso"]), st.session_state.info["nome"])
+    if k not in cache:
+        with st.spinner(f"Conto i token di {len(corpus['articoli'])} articoli…"):
+            cache[k] = corpora.conta_token(st.session_state.tok, corpus)
+    return cache[k]
+
+
+def estrai_altro(chiave_articolo, idonei):
+    st.session_state[chiave_articolo] = corpora.estrai(idonei, st.session_state.get(chiave_articolo))
+
+
+# Testo estratto da un corpus scaricato con scarica_testi.py. Sono proposti solo gli articoli lunghi almeno
+# max_token, così ogni testo estratto ha esattamente max_token token e i risultati sono confrontabili fra articoli.
+# Restituisce (testo, nome della fonte, dettagli per l'Excel) oppure (None, None, None)
+def pannello_corpus(max_token):
+    elenco = corpora.elenco_corpora()
+    if not elenco:
+        st.info("Nessun corpus scaricato. Una volta sola, con la connessione, dalla cartella `analisi-mamba` con "
+                "l'ambiente attivo: `python scarica_testi.py`. Scarica in `testi/corpora/` WikiText-2 (test) e il mese "
+                "più recente di notizie BBC (pochi MB in tutto); poi l'app li legge senza rete.", icon="📥")
+        return None, None, None
+
+    c1, c2 = st.columns([3, 2], vertical_alignment="bottom")
+    per_percorso = {c["percorso"]: c for c in elenco}
+    corpus = per_percorso[c1.selectbox("Corpus", list(per_percorso), key="corpus",
+                                       format_func=lambda p: per_percorso[p]["nome"])]
+    c2.markdown(f"<span class='visto {'mai' if corpus.get('mai_visto') else 'forse'}'>"
+                f"{'✓ mai visto dal modello' if corpus.get('mai_visto') else '! forse visto in addestramento'}</span>",
+                unsafe_allow_html=True)
+    st.caption(f"{corpus['breve']} Nei dati di addestramento di Mamba: {corpus['addestramento']}. "
+               f"Fonte: {corpus['citazione']}, `{corpus['dataset']}`.")
+
+    n_token = token_corpus(corpus)
+    articoli = corpus["articoli"]
+    idonei = [k for k, n in enumerate(n_token) if n >= max_token]
+    if not idonei:
+        st.warning(f"Nessun articolo di questo corpus ha almeno {max_token} token: abbassa i token massimi.")
+        return None, None, None
+
+    chiave_articolo = f"articolo_{corpus['id']}"
+    if st.session_state.get(chiave_articolo) not in idonei:
+        st.session_state[chiave_articolo] = corpora.estrai(idonei)
+    c1, c2 = st.columns([4, 1], vertical_alignment="bottom")
+    c1.selectbox(f"Articolo ({len(idonei)} su {len(articoli)} hanno almeno {max_token} token)", idonei,
+                 key=chiave_articolo,
+                 format_func=lambda k: f"{articoli[k]['titolo']}" + (f" · {articoli[k]['data']}" if articoli[k]["data"]
+                                                                    else "") + f" · {n_token[k]} token")
+    c2.button("🎲 Estrai un altro", width="stretch", on_click=estrai_altro, args=(chiave_articolo, idonei),
+              help="Sceglie a caso un altro articolo fra quelli abbastanza lunghi.")
+
+    k = st.session_state[chiave_articolo]
+    a = articoli[k]
+    meta = [("articolo", f"n. {k + 1} di {len(articoli)}"), ("lunghezza", f"{fmt_int(n_token[k])} token")]
+    if a["data"]:
+        meta.append(("pubblicato", a["data"]))
+    link = (f"<span><i>fonte</i><a href='{html_sicuro(a['link'])}' target='_blank'>apri l'originale ↗</a></span>"
+            if a["link"].startswith("http") else "")
+    mostra_html(f"<div class='articolo'><div class='tit'>{html_sicuro(a['titolo'])}</div><div class='meta'>"
+                + "".join(f"<span><i>{e}</i>{html_sicuro(v)}</span>" for e, v in meta) + link + "</div></div>")
+    st.text_area("Anteprima dell'articolo", a["testo"], height=230, disabled=True, label_visibility="collapsed",
+                 key=f"anteprima_{corpus['id']}_{k}")
+    fonte = f"{corpus['nome']} · n. {k + 1} «{a['titolo']}»"
+    return a["testo"], fonte, corpora.dettagli(corpus, k, n_token[k])
+
+
 # Passo ②: scelta del testo, poi esecuzione di tutte le fasi
 def pagina_testo(fasi):
     intestazione_modello(st.session_state.info)
     with st.container(key="passo_testo"):
         titolo_passo(st.empty(), 2, "Scegli il testo", "da scegliere", "attesa")
         fonte = st.radio("Fonte", FONTI, horizontal=True, key="fonte", label_visibility="collapsed")
-        grezzo = caricato = None
+        # Il limite serve già alla scelta degli articoli del corpus: si legge dallo stato del widget, disegnato più sotto
+        max_token = int(st.session_state.get("max_token", MAX_TOKEN_PREDEFINITO))
+        grezzo = caricato = nome_corpus = None
+        dettagli = []
         if fonte == FONTI[0]:
             st.caption("Breve testo in inglese sulla teoria del controllo: un riferimento fisso per confrontare "
                        "esecuzioni diverse.")
             grezzo = TESTO_ESEMPIO
             st.text_area("Testo di prova", TESTO_ESEMPIO, height=230, disabled=True, label_visibility="collapsed")
         elif fonte == FONTI[1]:
+            grezzo, nome_corpus, dettagli = pannello_corpus(max_token)
+        elif fonte == FONTI[2]:
             grezzo = st.text_area("Testo", height=230, key="testo_incollato", label_visibility="collapsed",
-                                  placeholder="Incolla qui il testo (in inglese, come i dati di addestramento di Mamba).")
+                                  placeholder="Scrivi o incolla qui il testo (in inglese, come i dati di addestramento "
+                                              "di Mamba).")
         else:
             caricato = st.file_uploader("File di testo", type=["txt", "md"], label_visibility="collapsed")
             if caricato is not None:
                 grezzo = caricato.getvalue().decode("utf-8", errors="replace")
                 st.text_area("Contenuto del file", grezzo, height=230, disabled=True, label_visibility="collapsed",
                              key=f"anteprima_{caricato.name}_{caricato.size}")
-        max_token = st.number_input("Token massimi", 16, 8192, MAX_TOKEN_PREDEFINITO, step=64,
-                                    help="I testi più lunghi vengono troncati. Su una GPU da 8 GB con un modello "
-                                         "da circa 1.4B parametri, se la memoria non basta conviene scendere "
-                                         "a 2048 o 1024.")
+        max_token = st.number_input("Token massimi", 16, 8192, MAX_TOKEN_PREDEFINITO, step=64, key="max_token",
+                                    help=f"I testi più lunghi vengono troncati. Mamba è addestrato su sequenze di "
+                                         f"{corpora.LUNGHEZZA_ADDESTRAMENTO} token: oltre, il modello lavora fuori dal "
+                                         "regime di addestramento. Dal corpus sono proposti solo articoli lunghi "
+                                         "almeno quanto questo valore. Su una GPU da 8 GB con il 1.4B, se la memoria "
+                                         "non basta conviene scendere a 1024.")
+        if max_token > corpora.LUNGHEZZA_ADDESTRAMENTO:
+            st.caption(f"⚠ Oltre {corpora.LUNGHEZZA_ADDESTRAMENTO} token, la lunghezza di addestramento di Mamba.")
         pronto = bool(grezzo and grezzo.strip())
         if pronto:
             n = len(st.session_state.tok(grezzo.strip()).input_ids)
@@ -785,9 +896,9 @@ def pagina_testo(fasi):
         c1.button("← Cambia modello", width="stretch", on_click=vai, args=("modello",))
         bottone_ricarica(c2)
         if c3.button("Esegui tutte le fasi →", type="primary", disabled=not pronto, width="stretch"):
-            nome_fonte = {FONTI[0]: "testo di prova", FONTI[1]: "testo incollato"}.get(
+            nome_fonte = {FONTI[0]: "testo di prova", FONTI[1]: nome_corpus, FONTI[2]: "testo scritto o incollato"}.get(
                 fonte, f"file {getattr(caricato, 'name', '')}")
-            imposta_testo(grezzo.strip(), nome_fonte, int(max_token))
+            imposta_testo(grezzo.strip(), nome_fonte, int(max_token), dettagli)
             esegui_tutte(fasi)
             vai("risultati")
             st.rerun()

@@ -61,6 +61,37 @@ def metriche(h32, W32, ids, h_r=None, W_r=None, avanzamento=lambda frazione, mes
     return m
 
 
+# Pendenza della KL lungo il testo: retta dei minimi quadrati di log10(KL media del blocco) contro log10(posizione
+# centrale del blocco), su blocchi di PENDENZA_BLOCCO posizioni, saltando il primo (poco contesto).
+# Pendenza ≈ 0: errore costante lungo il testo; ≈ 1: cresce come t; ≈ 2: cresce come t² (modi diventati integratori,
+# Capitolo 2). Restituisce (pendenza, R², blocchi usati); NaN con meno di PENDENZA_MIN blocchi utili
+PENDENZA_BLOCCO = 32
+PENDENZA_MIN = 4
+
+
+def pendenza_loglog(kl, blocco=PENDENZA_BLOCCO):
+    centri, medie = [], []
+    for s in range(blocco, len(kl) - blocco // 2 + 1, blocco):
+        v = kl[s:s + blocco]
+        v = v[np.isfinite(v)]
+        if v.size and v.mean() > 0:
+            centri.append(s + (len(kl[s:s + blocco]) - 1) / 2 + 1)
+            medie.append(v.mean())
+    if len(medie) < PENDENZA_MIN:
+        return float("nan"), float("nan"), len(medie)
+    x, y = np.log10(centri), np.log10(medie)
+    p, q = np.polyfit(x, y, 1)
+    r2 = 1 - np.var(y - (p * x + q)) / np.var(y) if np.var(y) > 0 else float("nan")
+    return float(p), float(r2), len(medie)
+
+
+def descrivi_pendenza(p, r2, blocchi):
+    if not math.isfinite(p):
+        return f"testo troppo corto: servono almeno {PENDENZA_MIN} blocchi da {PENDENZA_BLOCCO} posizioni dopo il primo"
+    return (f"retta di log KL contro log posizione, {blocchi} blocchi da {PENDENZA_BLOCCO} posizioni, R² = {r2:.2f} · "
+            "0 = errore costante, 1 = cresce come t, 2 = come t² (accumulo nei modi su 1)")
+
+
 def perplexity(nll):
     return math.exp(np.nanmean(nll)) if np.isfinite(nll).any() else float("nan")
 

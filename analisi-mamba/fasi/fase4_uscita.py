@@ -6,7 +6,7 @@ from nucleo import grafica as g
 from nucleo import uscita as u
 from nucleo.formato import fmt_int, fmt_perc, fmt_sci
 from nucleo.precisione import FORMATI, descrivi_formato, indicatore_formato, passaggio_ridotto
-from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Risultato
+from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Risultato, gerarchia
 
 SPIEGAZIONE = r"""
 **Cosa misura.** Quanto bene il modello predice il token successivo del testo, e quanto cambia questa predizione
@@ -55,8 +55,14 @@ LEGENDA_CONFRONTO = [("ΔNLL media", "NLL del formato ridotto meno NLL FP32, med
 
 
 def esegui(ctx):
-    nome = cf.formato_confronto(ctx)
-    return _solo_fp32(ctx) if nome is None else _con_confronto(ctx, nome)
+    return _con_confronto(ctx, cf.formato_confronto(ctx))
+
+
+# In primo piano: perplexity, KL media e come la KL evolve lungo il testo (accumulo o no)
+SECONDARI = dict(
+    indicatori=("Formato dei pesi", "KL massima", "Accordo top-1", "ΔNLL media", "Logit non finiti", "Dispositivo"),
+    colonne=("ppl", "dnll", "top1", "non_finite"),
+    grafici=("ΔNLL lungo il testo", "Distribuzione della KL sulle posizioni"))
 
 
 def _fmt_ppl(x):
@@ -76,37 +82,6 @@ def _note(ctx, testo):
     return f"{testo} · dispositivo: {ctx.nome_dispositivo}"
 
 
-def _solo_fp32(ctx):
-    h32 = u.stato_finale_fp32(cf.tratto(ctx, 0.0, 0.5))
-    ctx.avanzamento(0.5, "stato finale FP32 pronto")
-    m = u.metriche(h32, ctx.model.lm_head.weight, ctx.ids, avanzamento=cf.tratto(ctx, 0.5, 1.0).avanzamento)
-    s = u.sintesi(m)
-    righe = [dict(r, ppl=np.exp(r["nll"])) for r in u.righe_per_blocchi(m)]
-    peggiore = max(righe, key=lambda r: r["nll"])
-
-    indicatori = [
-        Indicatore("Perplexity", _fmt_ppl(s["ppl"]), f"exp(NLL media) su {fmt_int(s['posizioni'])} predizioni"),
-        Indicatore("NLL media", f"{s['nll']:.4f} nat", "−log P(token vero), media sul testo"),
-        Indicatore("Blocco più difficile", peggiore["strato"], f"NLL media {peggiore['nll']:.3f} nat"),
-        Indicatore("Logit non finiti", fmt_int(s["non_finite"]),
-                   "nessuno" if s["non_finite"] == 0 else "posizioni escluse dalle medie",
-                   "ok" if s["non_finite"] == 0 else "attenzione"),
-        Indicatore("Dispositivo", ctx.nome_dispositivo, "logit in FP32, log_softmax e NLL in FP64"),
-    ]
-    return Risultato(
-        codice="4",
-        titolo="Fase 4 - Uscita del modello: NLL e perplexity",
-        descrizione="Predizione del token successivo sul testo, a blocchi di 64 posizioni; NLL in FP64 dai logit FP32.",
-        colonne=COLONNE,
-        righe=righe,
-        indicatori=indicatori,
-        legenda=LEGENDA,
-        grafici=[_grafico_nll(m)],
-        evidenzia={peggiore["strato"]: "NLL media più alta"},
-        note_formato=_note(ctx, "FP32, NLL in FP64"),
-    )
-
-
 def _con_confronto(ctx, nome):
     h32 = u.stato_finale_fp32(cf.tratto(ctx, 0.0, 0.2))
     passaggio = passaggio_ridotto(ctx, nome, cf.tratto(ctx, 0.2, 0.7).avanzamento)
@@ -116,6 +91,7 @@ def _con_confronto(ctx, nome):
     righe = [dict(r, ppl=np.exp(r["nll"]), ppl_r=np.exp(r["nll_r"])) for r in u.righe_per_blocchi(m)]
     quarto = max(1, len(m["kl"]) // 4)
     kl_inizio, kl_fine = np.nanmean(m["kl"][:quarto]), np.nanmean(m["kl"][-quarto:])
+    pendenza = u.pendenza_loglog(m["kl"])
     controllo = FORMATI[nome] == torch.float32
 
     indicatori = [
@@ -133,6 +109,8 @@ def _con_confronto(ctx, nome):
                    else ("nessuna differenza" if s["dnll"] == 0 else "il formato ridotto dà in media più probabilità al token vero")),
         Indicatore("KL: primo → ultimo quarto del testo", f"{fmt_sci(kl_inizio)} → {fmt_sci(kl_fine)}",
                    cf.differenza(kl_inizio, kl_fine) or "un aumento indica errore che si accumula con il contesto"),
+        Indicatore("Pendenza della KL lungo il testo", "-" if not np.isfinite(pendenza[0]) else f"{pendenza[0]:+.2f}",
+                   u.descrivi_pendenza(*pendenza)),
         Indicatore("Logit non finiti", fmt_int(s["non_finite"]),
                    "nessuno" if s["non_finite"] == 0 else "posizioni escluse da medie e KL",
                    "ok" if s["non_finite"] == 0 else "attenzione"),
@@ -151,7 +129,7 @@ def _con_confronto(ctx, nome):
         if peggiore["top1"] < 1:
             evidenzia = cf.evidenze_unite(evidenzia, {peggiore["strato"]: "accordo top-1 più basso"})
 
-    return Risultato(
+    return gerarchia(Risultato(
         codice="4",
         titolo=f"Fase 4 - Uscita del modello, FP32 contro {nome}",
         descrizione="Predizione del token successivo sul testo, a blocchi di 64 posizioni; logit nel formato dei "
@@ -163,7 +141,7 @@ def _con_confronto(ctx, nome):
         grafici=[_grafico_nll(m, nome), _grafico_kl(m, nome), _grafico_dnll(m, nome), _grafico_istogramma(m, nome)],
         evidenzia=evidenzia,
         note_formato=_note(ctx, descrizione_formato(nome, ctx.dispositivo)),
-    )
+    ), **SECONDARI)
 
 
 def descrizione_formato(nome, dispositivo):

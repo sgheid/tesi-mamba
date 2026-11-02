@@ -9,7 +9,7 @@ from nucleo import confronto as cf
 from nucleo import grafica as g
 from nucleo.formato import fmt_int, fmt_perc, fmt_sci
 from nucleo.precisione import FORMATI, SOGLIA_FP16_ZERO, delta_baseline, descrivi_formato, indicatore_formato, passaggio_ridotto
-from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Risultato, valori
+from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Risultato, gerarchia, valori
 from nucleo.sonde import delta_fp32, esegui_con_sonde, ingresso_delta
 
 SPIEGAZIONE = r"""
@@ -81,36 +81,15 @@ def _sintesi(righe):
 
 
 def esegui(ctx):
-    nome = cf.formato_confronto(ctx)
-    return _solo_fp32(ctx) if nome is None else _con_confronto(ctx, nome)
+    return _con_confronto(ctx, cf.formato_confronto(ctx))
 
 
-# Solo FP32: il calcolo della vecchia Fase 2a, senza seconda copia
-def _solo_fp32(ctx):
-    righe, mediana_per_token = _delta(ctx)
-    lento, rapido, d_min, d_max = _sintesi(righe)
-    canali = righe[0]["valori"] // ctx.n_token
-
-    indicatori = [
-        Indicatore("Valori di Δ per strato", fmt_int(righe[0]["valori"]),
-                   f"{ctx.n_token} token × {canali} canali"),
-        Indicatore("Passo tipico più piccolo", fmt_sci(lento["d_mediana"]),
-                   f"strato {lento['strato']}: memoria più lunga"),
-        Indicatore("Passo tipico più grande", fmt_sci(rapido["d_mediana"]),
-                   f"strato {rapido['strato']}: si resetta di più"),
-        Indicatore("Δ minimo / massimo del modello", f"{fmt_sci(d_min)} / {fmt_sci(d_max)}"),
-    ]
-    return Risultato(
-        codice="2",
-        titolo="Fase 2 - Passo di campionamento Delta",
-        descrizione="Calcolato dal modello token per token: dipende dal testo letto.",
-        colonne=COLONNE,
-        righe=righe,
-        indicatori=indicatori,
-        legenda=LEGENDA,
-        grafici=[_grafico_fascia(righe), _grafico_mappa(mediana_per_token, len(righe), ctx.token)],
-        evidenzia={lento["strato"]: "passo tipico più piccolo", rapido["strato"]: "passo tipico più grande"},
-    )
+# In primo piano: Δ azzerati (underflow di FP16), errore su Δ, passo tipico più piccolo e Δ minimo/massimo
+SECONDARI = dict(
+    indicatori=("Formato dei pesi", "Valori di Δ per strato", "Passo tipico più grande", "Valori di Δ confrontati",
+                "Errore al 99° percentile più alto", "Valori non finiti (inf/NaN)"),
+    colonne=("d_min", "d_max", "decadi", "err_p99", "err_max", "zeri_attesi", "non_finiti"),
+    grafici=("Mappa del passo Δ",))
 
 
 # FP32 e formato ridotto affiancati, più gli errori della vecchia Fase 3b
@@ -136,7 +115,7 @@ def _con_confronto(ctx, nome):
                       "un minimo 0 vuol dire Δ azzerati dal formato" if d_min_r == 0 else ""),
     ] + errori.indicatori[1:]
 
-    return Risultato(
+    return gerarchia(Risultato(
         codice="2",
         titolo=f"Fase 2 - Passo di campionamento Delta, FP32 contro {nome}",
         descrizione="Calcolato dal modello token per token: dipende dal testo letto. " + errori.descrizione,
@@ -151,7 +130,7 @@ def _con_confronto(ctx, nome):
         evidenzia=cf.evidenze_unite({lento["strato"]: "passo tipico più piccolo",
                                      rapido["strato"]: "passo tipico più grande"}, errori.evidenzia),
         note_formato="FP32 e " + errori.note_formato,
-    )
+    ), **SECONDARI)
 
 
 def _positivi(v):

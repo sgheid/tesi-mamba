@@ -1,0 +1,71 @@
+=== VERIFICA 2026-10-29 10:50:46 ===
+
+--- 1. Caricamento del 1.4B sulla GPU: codice attuale contro corretto ---
+  FP32: picco commit attuale 11.33 GB -> corretto 7.52 GB (caricamento diretto usato: True), tempo 37 s -> 34 s
+        pesi identici bit a bit: True, logit identici: True
+  FP16: picco commit attuale 8.77 GB -> corretto 4.97 GB (caricamento diretto usato: True), tempo 37 s -> 34 s
+        pesi identici bit a bit: True, logit identici: True
+  carica vecchio BF16: ERRORE 1
+Traceback (most recent call last):
+  File "C:\Users\Luca\tesi-mamba\_verifica\verifica.py", line 56, in <module>
+    figlio(*sys.argv[1:5]); sys.exit()
+    ~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\Luca\tesi-mamba\_verifica\verifica.py", line 28, in figlio
+    model = modelli._carica_pesi(m14.percorso, "cuda", tipo).eval()
+            ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Luca\tesi-mamba\analisi-mamba\nucleo\modelli.py", line 120, in _carica_pesi
+    return carica(dtype=tipo, device_map=dispositivo)
+  File "C:\Users\Luca\tesi-mamba\analisi-mamba\nucleo\modelli.py", line 118, in <lambda>
+    carica = lambda **kw: MambaForCausalLM.from_pretrained(percorso, local_files_only=True, **kw)
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Luca\tesi-mamba\.venv\Lib\site-packages\transformers\modeling_utils.py", line 4313, in from_pretrained
+    loading_info, disk_offload_index = cls._load_pretrained_model(model, state_dict, checkpoint_files, load_config)
+                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Luca\tesi-mamba\.venv\Lib\site-packages\transformers\modeling_utils.py", line 4444, in _load_pretrained_model
+    file_pointer = safe_open(file, framework="pt", device=device, backend=backend)
+OSError: Il file di paging è troppo piccolo per essere completato. (os error 1455)
+
+
+--- 2. carica_e_verifica (come nell'app) col codice corretto ---
+  picco commit 7.65 GB, diretto True, 36 s
+    OK Architettura Mamba-1 (model_type = mamba) 
+    OK Tokenizer letto dalla cartella GPTNeoXTokenizer
+    OK Pesi caricati in FP32 in 22.6 s
+    OK Struttura interna (A_log, x_proj, dt_proj) 48 strati
+    OK A_log senza NaN o infiniti 
+    OK Prova di lettura su un testo breve 
+
+--- 3. Rilettura dei pesi FP32 dal disco (modo 'disco' dei confronti) col codice corretto ---
+  pesi riletti identici: True, picco commit 7.97 GB
+
+--- 4. Fotografia delle fasi (130m, tutte le fasi, GPU): attuale contro corretto ---
+  attuale: codice 0, 123 s
+  corretto: codice 0, 113 s
+    state-spaces/mamba-130m-hf su cuda, 211 token
+      1_FP32-vs-FP16.json identica
+      1_FP32-vs-BF16.json identica
+      1_FP32-vs-FP32-controllo.json identica
+      2_FP32-vs-FP16.json identica
+      2_FP32-vs-BF16.json identica
+      2_FP32-vs-FP32-controllo.json identica
+      3_FP32-vs-FP16.json identica
+      3_FP32-vs-BF16.json identica
+      3_FP32-vs-FP32-controllo.json identica
+      4_FP32-vs-FP16.json identica
+      4_FP32-vs-BF16.json identica
+      4_FP32-vs-FP32-controllo.json identica
+      5_FP16.json identica
+      5_BF16.json identica
+      5_FP32-controllo.json identica
+    Tutte identiche al riferimento.
+
+--- 4. Fotografia delle fasi (1.4b, Fase 1, GPU): attuale contro corretto ---
+  attuale: codice 0, 48 s
+  corretto: codice 0, 50 s
+    state-spaces/mamba-1.4b-hf su cuda, 211 token
+      1_FP32-vs-FP16.json identica
+      1_FP32-vs-BF16.json identica
+      1_FP32-vs-FP32-controllo.json identica
+    Tutte identiche al riferimento.
+
+=== FINE ===

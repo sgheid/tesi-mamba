@@ -1,4 +1,5 @@
-MAX_TOKEN_PREDEFINITO = 4096
+# Lunghezza di addestramento di Mamba (vedi nucleo/corpora.py): oltre, il modello lavora fuori dal suo regime
+MAX_TOKEN_PREDEFINITO = 2048
 
 # Testo di esempio fisso, per risultati ripetibili (211 token con il tokenizer di Mamba)
 TESTO_ESEMPIO = (

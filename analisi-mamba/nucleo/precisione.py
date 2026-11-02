@@ -6,7 +6,7 @@ from contextlib import contextmanager
 
 import torch
 
-from nucleo.modelli import _carica_pesi, libera
+from nucleo.modelli import _carica_pesi, leggi_safetensors, libera
 from nucleo.risultato import Indicatore
 from nucleo.sonde import delta_modello, esegui_con_sonde
 
@@ -61,22 +61,17 @@ def commit_libero_gb():
     return stato.commit_libero / 2 ** 30
 
 
-# Rilegge dal disco i pesi FP32 dentro gli stessi Parameter del modello, un tensore alla volta (pread, senza mmap)
+# Rilegge dal disco i pesi FP32 dentro gli stessi Parameter del modello, un tensore alla volta (senza mmap: vedi
+# nucleo.modelli.leggi_safetensors)
 def _rileggi_pesi(model, percorso, dispositivo):
-    from safetensors import safe_open
     parametri = dict(model.named_parameters())
     letti = set()
     for file in sorted(glob.glob(os.path.join(percorso, "*.safetensors"))):
-        try:
-            aperto = safe_open(file, framework="pt", device="cpu", backend="pread")
-        except TypeError:
-            aperto = safe_open(file, framework="pt", device="cpu")
-        with aperto as f:
-            for chiave in f.keys():
-                if chiave in parametri:
-                    p = parametri[chiave]
-                    p.data = f.get_tensor(chiave).to(device=dispositivo, dtype=p.dtype)
-                    letti.add(chiave)
+        for chiave, t in leggi_safetensors(file):
+            if chiave in parametri:
+                p = parametri[chiave]
+                p.data = t.to(device=dispositivo, dtype=p.dtype)
+                letti.add(chiave)
     if letti != set(parametri):
         raise RuntimeError(f"Pesi FP32 non trovati nei file: {sorted(set(parametri) - letti)[:5]}")
 

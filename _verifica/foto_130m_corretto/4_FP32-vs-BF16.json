@@ -1,0 +1,124 @@
+{
+ "titolo": "Fase 4 - Uscita del modello, FP32 contro BF16",
+ "note_formato": "pesi in BF16 emulato sulla GPU, ricorrenza in FP32; NLL e KL in FP64 · dispositivo: cuda",
+ "righe": [
+  {
+   "strato": "0–63",
+   "da": 0,
+   "a": 63,
+   "nll": 3.275487746575288,
+   "non_finite": 0,
+   "nll_r": 3.2734619909515015,
+   "dnll": -0.0020257556237859844,
+   "kl": 0.004906048822211332,
+   "top1": 0.953125,
+   "ppl": 26.45612621912027,
+   "ppl_r": 26.402586819826965
+  },
+  {
+   "strato": "64–127",
+   "da": 64,
+   "a": 127,
+   "nll": 2.7697694207826773,
+   "non_finite": 0,
+   "nll_r": 2.7724981112725757,
+   "dnll": 0.00272869048989876,
+   "kl": 0.004480007744971347,
+   "top1": 0.921875,
+   "ppl": 15.954954704656462,
+   "ppl_r": 15.998550290205507
+  },
+  {
+   "strato": "128–191",
+   "da": 128,
+   "a": 191,
+   "nll": 3.5110456173796436,
+   "non_finite": 0,
+   "nll_r": 3.5078984188889466,
+   "dnll": -0.003147198490697213,
+   "kl": 0.0042152411047061125,
+   "top1": 0.96875,
+   "ppl": 33.48326016519163,
+   "ppl_r": 33.37804734898746
+  },
+  {
+   "strato": "192–209",
+   "da": 192,
+   "a": 209,
+   "nll": 3.3176435952218735,
+   "non_finite": 0,
+   "nll_r": 3.3140919671972244,
+   "dnll": -0.003551628024648699,
+   "kl": 0.004299513488559603,
+   "top1": 0.8888888888888888,
+   "ppl": 27.59524831004482,
+   "ppl_r": 27.497414091017298
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Perplexity",
+   "valore": "24.4533 → 24.4277",
+   "nota": "FP32 → BF16 · differenza relativa −0.105 % · su 210 predizioni",
+   "stato": null
+  },
+  {
+   "etichetta": "KL media",
+   "valore": "4.51e-03",
+   "nota": "nat per posizione · mediana 3.61e-03 · P99 1.96e-02",
+   "stato": null
+  },
+  {
+   "etichetta": "KL: primo → ultimo quarto del testo",
+   "valore": "5.10e-03 → 3.99e-03",
+   "nota": "differenza relativa −21.7 %",
+   "stato": null
+  },
+  {
+   "etichetta": "Pendenza della KL lungo il testo",
+   "valore": "+0.05",
+   "nota": "retta di log KL contro log posizione, 6 blocchi da 32 posizioni, R² = 0.03 · 0 = errore costante, 1 = cresce come t, 2 = come t² (accumulo nei modi su 1)",
+   "stato": null
+  },
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "BF16",
+   "nota": "BF16 emulato da PyTorch sulla GPU (Turing non ha BF16 nativo) · pesi FP32 tolti dalla GPU durante il confronto e riletti dal disco (memoria insufficiente per tenerli su CPU) · modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "KL massima",
+   "valore": "3.92e-02",
+   "nota": "posizione 1, che predice ' studies'",
+   "stato": null
+  },
+  {
+   "etichetta": "Accordo top-1",
+   "valore": "94.3 %",
+   "nota": "12 posizioni con un token più probabile diverso",
+   "stato": null
+  },
+  {
+   "etichetta": "ΔNLL media",
+   "valore": "-1.05e-03 nat",
+   "nota": "il formato ridotto dà in media più probabilità al token vero",
+   "stato": null
+  },
+  {
+   "etichetta": "Logit non finiti",
+   "valore": "0",
+   "nota": "nessuno",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Dispositivo",
+   "valore": "cuda",
+   "nota": "logit nel formato dei pesi, log_softmax, NLL e KL in FP64",
+   "stato": null
+  }
+ ],
+ "evidenzia": {
+  "0–63": "KL media più alta",
+  "192–209": "accordo top-1 più basso"
+ }
+}

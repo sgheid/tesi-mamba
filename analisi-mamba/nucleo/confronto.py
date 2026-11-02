@@ -4,20 +4,20 @@ from dataclasses import replace
 from nucleo.formato import fmt_int, fmt_perc
 from nucleo.risultato import Colonna, Indicatore, Parametro
 
-# Parametro "Confronto" delle fasi: riferimento FP32 da solo o affiancato a una copia con i pesi in FP16/BF16
-SOLO_FP32 = "Solo FP32"
-CONFRONTI = {SOLO_FP32: None, "FP32 vs FP16": "FP16", "FP32 vs BF16": "BF16"}
+# Parametro "Confronto" delle fasi: riferimento FP32 affiancato a una copia con i pesi in FP16/BF16.
+# Non c'è più una scelta "Solo FP32": ogni confronto contiene già tutte le grandezze del modello FP32
+CONFRONTI = {"FP32 vs FP16": "FP16", "FP32 vs BF16": "BF16"}
 # Non compare nel menu: lo usa prove/fotografa_fasi.py, con errori che devono essere esattamente nulli
 CONTROLLO = "FP32 vs FP32 (controllo)"
 
-PARAMETRO = Parametro("confronto", "Confronto", list(CONFRONTI), SOLO_FP32,
-                      "Solo FP32: il modello caricato, senza seconda copia. FP32 vs FP16/BF16: affianca una copia "
-                      "con i pesi nel formato ridotto, letta dal disco.")
+PARAMETRO = Parametro("confronto", "Confronto", list(CONFRONTI), "FP32 vs FP16",
+                      "Affianca al modello FP32 una copia con i pesi nel formato ridotto, letta dal disco: ogni "
+                      "risultato contiene sia le grandezze FP32 sia quelle del formato ridotto.")
 
 
-# Nome del formato ridotto (chiave di nucleo.precisione.FORMATI), None per "Solo FP32"
+# Nome del formato ridotto (chiave di nucleo.precisione.FORMATI)
 def formato_confronto(ctx):
-    valore = ctx.parametri.get("confronto", SOLO_FP32)
+    valore = ctx.parametri.get("confronto", PARAMETRO.predefinito)
     return "FP32 (controllo)" if valore == CONTROLLO else CONFRONTI[valore]
 
 
@@ -57,8 +57,8 @@ def colonne_affiancate(colonne, nome):
             elenco.append(c)
             continue
         sotto = lambda f: f"{c.sottotitolo} · {f}" if c.sottotitolo else f
-        elenco += [Colonna(c.chiave, c.titolo, sotto("FP32"), c.formato),
-                   Colonna(c.chiave + "_r", c.titolo, sotto(nome), c.formato)]
+        elenco += [Colonna(c.chiave, c.titolo, sotto("FP32"), c.formato, c.secondaria),
+                   Colonna(c.chiave + "_r", c.titolo, sotto(nome), c.formato, c.secondaria)]
     return elenco
 
 

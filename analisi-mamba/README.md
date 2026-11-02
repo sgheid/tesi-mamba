@@ -45,32 +45,78 @@ diventa verde o rossa quando finisce (passando il mouse su una tacca si leggono 
    `C:\Users\<nome>\.cache\huggingface\hub`) e il dispositivo, poi *Carica e verifica*. Il programma lo
    carica in FP32 senza rete e fa sei controlli: architettura, tokenizer, pesi, struttura interna, valori
    finiti, prova di lettura.
-2. **Testo.** Testo di prova (visibile per intero, fisso per risultati ripetibili), testo incollato o file
-   `.txt`. *Esegui tutte le fasi* esegue ogni fase in tutti i valori del parametro **Confronto**.
+2. **Testo.** Quattro fonti: testo di prova (visibile per intero, fisso per risultati ripetibili), **articolo estratto
+   da un corpus** (vedi *Testi reali* qui sotto), testo scritto o incollato, file `.txt`. *Esegui tutte le fasi* esegue
+   ogni fase in tutti i valori del parametro **Confronto**.
 3. **Risultati.** Un menu sceglie la fase e il confronto: riquadri di sintesi, grafici con la guida alla lettura,
-   tabella per strato, download in Excel. Niente viene scritto su disco finché non si preme *Salva* nel riquadro
+   tabella per strato, download in Excel. In ogni fase i **risultati fondamentali** sono in primo piano; le misure di
+   contorno (conteggi di verifica, metriche ridondanti, grafici di dettaglio, colonne secondarie) stanno nei riquadri
+   compressi "Misure secondarie", "Grafici secondari" e "Tabella completa". L'Excel contiene sempre tutto: nella
+   sintesi i secondari sono sotto l'etichetta "Misure secondarie". Niente viene scritto su disco finché non si preme *Salva* nel riquadro
    in fondo: la singola analisi (un file con anche i dati dei grafici) oppure *Salva tutto in un file Excel*. I file
    vanno in `risultati/`.
 
 *Ricarica le fasi* (nella riga dei pulsanti delle pagine Testo e Risultati) rilegge i file in `fasi/`.
 
+## Testi reali: WikiText-2 e notizie BBC
+
+Una volta sola, con la connessione, dalla cartella `analisi-mamba` con l'ambiente attivo:
+```
+python scarica_testi.py
+```
+Scarica in `testi/corpora/` due corpora (pochi MB in tutto; nessuna libreria nuova, i file passano da una cartella
+temporanea e non restano nella cache di Hugging Face). Da quel momento l'app li legge senza rete.
+
+| Corpus | Dataset | Il modello può averlo visto? |
+|---|---|---|
+| WikiText-2 · test | `Salesforce/wikitext`, `wikitext-2-raw-v1` (Merity et al., 2016) | Sì, è possibile: Wikipedia in inglese è nel Pile, su cui è addestrato Mamba |
+| BBC News · mese | `RealTimeData/bbc_news_alltime` (Li et al., 2024) | No: notizie della prima pagina BBC di un mese dal 2021 in poi, dopo la raccolta del Pile (2020) |
+
+- WikiText-2 è il riferimento della letteratura per la perplexity; il testo è ricostruito (punteggiatura riattaccata,
+  ` @-@ ` → `-`) come in lm-evaluation-harness di EleutherAI. Le notizie BBC sono la verifica sui testi mai visti:
+  se l'effetto di FP16/BF16 è lo stesso sui due corpora, il risultato non dipende dalla contaminazione.
+- Predefinito: il mese BBC più recente disponibile. Altri mesi: `python scarica_testi.py --mesi-bbc 2023-11,2023-12`
+  (i mesi precedenti al 2021 sono rifiutati). `--solo wikitext|bbc` ne scarica uno, `--forza` riscarica.
+- Ogni file registra la revisione (commit) del dataset, così l'estrazione è ripetibile.
+- Nell'app, fonte *Estrai da un corpus*: si sceglie il corpus (con l'indicazione "mai visto dal modello" o "forse
+  visto in addestramento"), poi un articolo a caso con **🎲 Estrai un altro** oppure per titolo dal menu; l'anteprima
+  mostra titolo, data, collegamento all'originale e testo intero. Sono proposti **solo gli articoli lunghi almeno
+  quanto "Token massimi"**: ogni testo estratto ha quindi esattamente quel numero di token e i risultati sono
+  confrontabili fra articoli.
+- Negli Excel, oltre a "Fonte del testo", compaiono corpus, dataset, revisione, numero e titolo dell'articolo, data,
+  collegamento e la riga "Nei dati di addestramento di Mamba": con questi dati la stessa misura si ripete, per esempio
+  sul 1.4B con lo stesso articolo.
+- `testi/` è esclusa dal repository (`.gitignore`): i testi BBC restano solo sul PC.
+
 ## Fasi: grandezza × confronto
 
-Le fasi sono organizzate per **grandezza**. Le Fasi 1–4 hanno il parametro **Confronto** con tre valori; la Fase 5,
-un caso limite, ha il suo parametro **Formato della ricorrenza** (FP16 / BF16).
+Le fasi sono organizzate per **grandezza**. Le Fasi 1–4 hanno il parametro **Confronto** con due valori,
+FP32 vs FP16 e FP32 vs BF16: non c'è più "Solo FP32", perché ogni confronto contiene già tutte le grandezze del modello
+FP32 (colonne FP32 nella tabella, valore FP32 a sinistra della freccia negli indicatori). La Fase 5, un caso limite, ha
+il suo parametro **Formato della ricorrenza** (FP16 / BF16).
 
-| Fase | Grandezza | Solo FP32 | FP32 vs FP16 / FP32 vs BF16 |
+| Fase | Grandezza | In primo piano | In secondo piano |
 |---|---|---|---|
-| 1 – Poli continui | $a = -\exp(A_{\log})$, dai pesi | spettro per strato, distribuzione di \|a\| | stesso spettro con A_log arrotondato, errore relativo su a e limite teorico |
-| 2 – Passo Δ | Δ token × canale, dal testo | fascia per strato, mappa strato × token | Δ della copia, errore mediano/P99/max per profondità, Δ azzerati, non finiti |
-| 3 – Margini di stabilità | ā = exp(Δ·a) e margine 1 − ā | margine minimo, poli su 1 (divisi tra integratori, Δ > 0, e modi congelati, Δ = 0) e in 0, distribuzione dei margini | stesse grandezze nella copia, poli nuovi (per Δ = 0 o per margine sotto 2⁻²⁵) e persi, errore sul margine |
-| 4 – Effetto sull'uscita | predizione del token successivo | NLL per posizione e perplexity | perplexity della copia, KL(P_FP32 ‖ P_ridotto) media/mediana/P99/max, accordo top-1, ΔNLL, tutto anche lungo il testo |
+| 1 – Poli continui | $a = -\exp(A_{\log})$, dai pesi (non dipende dal testo) | spettro e distribuzione di \|a\|, polo più lento, errore relativo tipico e massimo su a, poli spostati oltre l'1% | poli instabili (zero per costruzione), polo più veloce, limite teorico, errore per strato |
+| 2 – Passo Δ | Δ token × canale, dal testo | Δ azzerati (underflow FP16), errore tipico su Δ per profondità, passo tipico più piccolo, Δ minimo/massimo | P99/max, non finiti, mappa strato × token |
+| 3 – Margini di stabilità | ā = exp(Δ·a), margine 1 − ā e memoria sul testo | **regimi di memoria sul testo**, **poli su 1 potenzialmente rilevanti**, **variazione della memoria sul testo**, poli su 1 con arrotondamento esatto, congelati e integratori, poli nuovi, distribuzione dei margini | conteggio con l'exp del dispositivo, margine minimo, poli in 0, persi, errore sul margine |
+| 4 – Effetto sull'uscita | predizione del token successivo | perplexity FP32 → ridotto, KL media, KL primo → ultimo quarto, **pendenza della KL lungo il testo** | KL massima, accordo top-1, ΔNLL, istogramma della KL |
 
 | Fase | Grandezza | FP16 / BF16 (formato della ricorrenza, pesi sempre FP32) |
 |---|---|---|
-| 5 – Caso limite: ricorrenza ridotta | ā, ΔBu e stato nel formato ridotto | A: poli nuovi su 1 e a 0 per arrotondamento di ā (soglie verificate 2⁻¹² / 2⁻⁹), memoria persa, errore sul margine; B: uscita con la ricorrenza simulata (B1 solo ā, B2 anche ΔBu e stato) con le metriche della Fase 4 |
+| 5 – Caso limite: ricorrenza ridotta | ā, ΔBu e stato nel formato ridotto | A: poli nuovi su 1 e a 0 per arrotondamento di ā (soglie verificate 2⁻¹² / 2⁻⁹), **quanti dei nuovi su 1 sono potenzialmente rilevanti**, memoria persa, errore sul margine; B: uscita con la ricorrenza simulata (B1 solo ā, B2 anche ΔBu e stato) con le metriche della Fase 4, **pendenza della KL** e **stato massimo FP32 → B1 → B2** |
 
-- **Solo FP32** non carica nessuna seconda copia: è veloce come le vecchie Fasi 1, 2a, 2b.
+- **Memoria sul testo (Fasi 3 e 5).** Per ogni modo si somma il passo su tutto il testo, θ = Σ Δ (tempo interno del
+  canale), e si calcola |a|θ: la frazione di stato che il modo conserva sull'intero testo è ρ = e^(−|a|θ). Regimi:
+  |a|θ > 10 dimentica, 0,1–10 critico, < 0,1 integratore di fatto (conserva più del 90%). Un polo su 1 è
+  "potenzialmente rilevante" se è un integratore (Δ > 0) in un modo con |a|θ ≥ 0,1; gli altri sono certamente
+  trascurabili su quel testo. Le soglie sono `REGIME_BASSO` e `REGIME_ALTO` in `nucleo/margini.py`. I regimi dipendono
+  dalla lunghezza del testo.
+- **Pendenza della KL (Fasi 4 e 5).** Retta dei minimi quadrati di log10(KL media) contro log10(posizione), su blocchi di
+  32 posizioni saltando il primo (`nucleo/uscita.py`, `pendenza_loglog`): circa 0 = errore costante, circa 2 = cresce
+  come t². Servono almeno 4 blocchi utili, cioè circa 160 token.
+- **Stato massimo in FP32 (Fase 5).** Misurato con un passaggio in più, la ricorrenza simulata in FP32 (identica bit a bit
+  all'originale): la Fase 5 dura di conseguenza circa un terzo in più.
 - **Con un confronto** ogni pagina mostra riferimento e formato ridotto insieme: indicatori "valore FP32 → valore
   ridotto" con la differenza, tabella con ogni colonna FP32 seguita dalla stessa colonna nel formato ridotto e poi
   le metriche del confronto, grafici con il FP32 in blu e il formato ridotto in arancione sullo stesso grafico (il
@@ -79,7 +125,7 @@ un caso limite, ha il suo parametro **Formato della ricorrenza** (FP16 / BF16).
 - La **Fase 5 non corrisponde ai runtime reali**: transformers tiene ā e lo stato in FP32 anche con i pesi in FP16/BF16.
   È un'analisi di sensibilità: cosa succederebbe se anche la ricorrenza fosse in bassa precisione.
 - Δ e ā restano in due fasi separate di proposito: separarli permette di capire se un polo su 1 dipende da a o da Δ.
-- Le colonne FP32 vengono dallo stesso calcolo di "Solo FP32" (Δ ricalcolato in FP32 e in FP64); gli errori del
+- Le colonne FP32 vengono dal calcolo FP32 della fase (Δ ricalcolato in FP32 e in FP64); gli errori del
   confronto usano come riferimento il Δ del modello FP32 con le operazioni di transformers. Sul 130M i due
   riferimenti danno gli stessi numeri; su un altro modello o dispositivo i poli su 1 FP32 delle due colonne
   potrebbero differire di poco, solo per questo.
@@ -91,12 +137,25 @@ un caso limite, ha il suo parametro **Formato della ricorrenza** (FP16 / BF16).
   tabella per strato, e la legenda delle colonne alla fine della fase. Le fasi si possono comprimere (struttura di
   Excel). I dati dei grafici non ci sono: restano nell'Excel della singola analisi.
 
+## Misure per la tesi
+
+- **Dispositivo fisso: CPU.** I poli su 1 calcolati con l'exp FP32 dipendono dal dispositivo (vedi Note); per la tesi
+  si riportano i valori con arrotondamento esatto, ma conviene eseguire tutto sullo stesso dispositivo.
+- **Più testi reali da 2048 token**, estratti dai corpora (alcuni da WikiText-2 e alcuni dalle notizie BBC mai viste),
+  uno alla volta con *Esegui tutte le fasi* e *Salva tutto in un file Excel*: le medie e la variabilità tra i testi, e il
+  confronto fra i due corpora, vanno nel Capitolo 5.
+- **Entrambi i modelli**, 130M e 1.4B, con gli stessi testi.
+- La Fase 1 non dipende dal testo: basta un'esecuzione per modello.
+
 ## Struttura
 
 ```
 app.py            interfaccia (solo presentazione)
-nucleo/           modelli, testo, sonde, precisione, confronto, margini, uscita (metriche della Fase 4 e 5),
-                  ricorrenza (soglie e ricorrenza simulata della Fase 5), formato dei numeri, grafica, Excel
+scarica_testi.py  scarica una volta sola i corpora in testi/corpora/ (unico passaggio con la rete)
+nucleo/           modelli, testo, corpora (lettura e pulizia dei corpora), sonde, precisione, confronto, margini,
+                  uscita (metriche della Fase 4 e 5), ricorrenza (soglie e ricorrenza simulata della Fase 5),
+                  formato dei numeri, grafica, Excel
+testi/corpora/    corpora scaricati (un JSON per corpus; fuori dal repository)
 fasi/             una fase per file: ogni file con FASE = Fase(...) diventa una voce del menu
   fase1_poli_continui.py
   fase2_delta.py
@@ -143,9 +202,17 @@ prove/            script da riga di comando (vedi Note)
   dispositivo e verificate in modo esaustivo da `prove/prova_soglie.py` (CPU e GPU: identiche). Sul testo di prova il
   130M ha 4 905 929 poli nuovi su 1 in FP16 e 11 926 453 in BF16 su CPU (4 857 273 e 11 877 830 su GPU, dove l'exp
   FP32 porta a 1 già più poli).
-- **Testi lunghi**: "Token massimi" vale 4096 di predefinito (fino a 8192); i testi più lunghi vengono troncati.
+- **Testi lunghi**: "Token massimi" vale 2048 di predefinito, la lunghezza di addestramento di Mamba (Gu e Dao, 2023,
+  §4.2); si può salire fino a 8192, con un avviso oltre 2048. I testi più lunghi vengono troncati.
   Col 1.4B a 4096 token le Fasi 2–3, eseguite insieme, tengono in RAM circa 3 GB di Δ più circa 1,6 GB per formato; sulla GPU da 8 GB la
   Fase 5B usa la stessa memoria di un passaggio normale del modello, che a 4096 token può non bastare.
+- **Caricamento dei pesi** (`nucleo/modelli.py`): il modello è costruito vuoto, allocato direttamente sul dispositivo e
+  riempito leggendo i file `.safetensors` un tensore alla volta, senza mmap. Su Windows safetensors e transformers
+  impegnano memoria virtuale (commit) pari all'intero file dei pesi mentre i pesi arrivano sulla GPU: col 1.4B in
+  FP32 il picco del processo era 11,3 GB (5,1 GB di pesi sulla GPU, che con WDDM contano anche nel commit, più 4,6 GB
+  del primo file) e con RAM + file di paging già occupati da altri programmi dava l'errore 1455 ("file di paging
+  troppo piccolo"). Ora il picco è 7,5 GB, con pesi e logit identici bit a bit a `from_pretrained` (FP32, FP16,
+  BF16); se il caricamento diretto fallisce per altri motivi si torna a `from_pretrained`.
 - Sulla GPU, durante quel passaggio, il modello FP32 lascia spazio alla copia: va su CPU se la memoria virtuale
   di Windows (RAM + file di paging) basta, altrimenti (tipicamente col 1.4B) i suoi pesi vengono tolti e alla
   fine riletti dal disco. Il riquadro "Formato dei pesi" dice quale strada è stata usata.
@@ -155,14 +222,18 @@ prove/            script da riga di comando (vedi Note)
   - `fotografa_fasi.py cartella [--confronta riferimento] [--fasi 1,2]`: esegue le fasi in tutte le
     combinazioni sul testo di esempio, più i controlli nascosti "FP32 vs FP32" (Fasi 1–4) e "ricorrenza in FP32"
     (Fase 5), che devono dare errori nulli, e salva righe, indicatori e versioni delle librerie in JSON.
-    **Test di regressione:** `prove/fotografia/` è la fotografia di tutte le fasi attuali (130M su CPU, 22/10/2026).
+    **Test di regressione:** `prove/fotografia/` è la fotografia delle fasi al 22/10/2026 (130M su CPU). Dopo la
+    riorganizzazione del 28/10/2026 (via "Solo FP32", nuove misure, nuovi indicatori) va rigenerata una volta con
+    `python prove/fotografa_fasi.py prove/fotografia` dopo aver verificato che l'app funzioni; da quel momento torna a
+    essere il riferimento.
     Dopo ogni modifica al codice, `python prove/fotografa_fasi.py nuova --confronta prove/fotografia` deve dire
     "Tutte identiche al riferimento" (due esecuzioni sullo stesso PC danno numeri identici); se cambiano le versioni
     delle librerie lo script lo segnala prima delle differenze;
   - `prova_soglie.py [--gpu]`: soglie di arrotondamento di ā verso 1 e verso 0, in modo esaustivo;
   - `prova_ricorrenza.py [--gpu]`: ricorrenza simulata identica bit a bit in FP32 e funzione originale ripristinata;
-  - `verifica_fusione.py nuova prove/fotografia_fasi_precedenti`: confronta le Fasi 1–3 attuali con la fotografia
-    delle sei fasi precedenti (130M su CPU). Esito al momento della riorganizzazione: identiche.
+  - `verifica_fusione.py nuova prove/fotografia_fasi_precedenti`: confrontava le Fasi 1–3 con la fotografia delle sei
+    fasi precedenti (esito al momento della fusione: identiche). Usa "Solo FP32", che non esiste più: è storico e non
+    va più eseguito.
 - **I poli su 1 in FP32 dipendono dal dispositivo.** Δ e margini esatti sono gli stessi su CPU e GPU, ma l'exp
   in FP32 della GPU non è arrotondato correttamente vicino a 1 e porta a 1 anche margini oltre 2⁻²⁴: sul testo di
   prova il 130M ha 50 958 poli su 1 su CPU e 99 515 su GPU, il 1.4B 495 310 su CPU e 919 870 su GPU. I poli in 0 non

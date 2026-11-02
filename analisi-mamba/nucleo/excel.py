@@ -91,12 +91,22 @@ def _info_modello(info):
 def _info_testo(info):
     if info.get("testo") is None:
         return []
-    return [("Fonte del testo", info.get("fonte_testo", "")), ("Token analizzati", str(info.get("n_token", "")))]
+    # Per un testo estratto da un corpus: dataset, revisione, articolo e rapporto con i dati di addestramento
+    return ([("Fonte del testo", info.get("fonte_testo", "")), ("Token analizzati", str(info.get("n_token", "")))]
+            + [tuple(v) for v in info.get("dettagli_testo", [])])
 
 
+# Prima i risultati fondamentali, poi, sotto un'etichetta, le misure secondarie (come nell'app)
 def _sintesi(ws, riga, ris, ultima):
-    for ind in ris.indicatori:
+    principali = [i for i in ris.indicatori if not getattr(i, "secondario", False)]
+    secondari = [i for i in ris.indicatori if getattr(i, "secondario", False)]
+    for ind in principali:
         riga = _coppia(ws, riga, ind.etichetta, ind.valore + (f"  -  {ind.nota}" if ind.nota else ""), ultima)
+    if secondari:
+        ws.cell(riga, 1, "Misure secondarie").font = Font(italic=True, color="808080")
+        riga += 1
+        for ind in secondari:
+            riga = _coppia(ws, riga, ind.etichetta, ind.valore + (f"  -  {ind.nota}" if ind.nota else ""), ultima)
     return riga
 
 

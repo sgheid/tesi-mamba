@@ -1,0 +1,127 @@
+{
+ "titolo": "Fase 4 - Uscita del modello, FP32 contro FP32 (controllo)",
+ "note_formato": "pesi in FP32 (controllo), ricorrenza in FP32; NLL e KL in FP64 · dispositivo: cuda",
+ "righe": [
+  {
+   "strato": "0–63",
+   "da": 0,
+   "a": 63,
+   "nll": 3.275487746575288,
+   "non_finite": 0,
+   "nll_r": 3.275487746575288,
+   "dnll": 0.0,
+   "kl": 0.0,
+   "top1": 1.0,
+   "ppl": 26.45612621912027,
+   "ppl_r": 26.45612621912027
+  },
+  {
+   "strato": "64–127",
+   "da": 64,
+   "a": 127,
+   "nll": 2.7697694207826773,
+   "non_finite": 0,
+   "nll_r": 2.7697694207826773,
+   "dnll": 0.0,
+   "kl": 0.0,
+   "top1": 1.0,
+   "ppl": 15.954954704656462,
+   "ppl_r": 15.954954704656462
+  },
+  {
+   "strato": "128–191",
+   "da": 128,
+   "a": 191,
+   "nll": 3.5110456173796436,
+   "non_finite": 0,
+   "nll_r": 3.5110456173796436,
+   "dnll": 0.0,
+   "kl": 0.0,
+   "top1": 1.0,
+   "ppl": 33.48326016519163,
+   "ppl_r": 33.48326016519163
+  },
+  {
+   "strato": "192–209",
+   "da": 192,
+   "a": 209,
+   "nll": 3.3176435952218735,
+   "non_finite": 0,
+   "nll_r": 3.3176435952218735,
+   "dnll": 0.0,
+   "kl": 0.0,
+   "top1": 1.0,
+   "ppl": 27.59524831004482,
+   "ppl_r": 27.59524831004482
+  }
+ ],
+ "indicatori": [
+  {
+   "etichetta": "Perplexity",
+   "valore": "24.4533 → 24.4533",
+   "nota": "FP32 → FP32 (controllo) · nessuna differenza · su 210 predizioni",
+   "stato": null
+  },
+  {
+   "etichetta": "KL media",
+   "valore": "0.00e+00",
+   "nota": "nat per posizione · mediana 0.00e+00 · P99 0.00e+00",
+   "stato": null
+  },
+  {
+   "etichetta": "KL: primo → ultimo quarto del testo",
+   "valore": "0.00e+00 → 0.00e+00",
+   "nota": "nessuna differenza",
+   "stato": null
+  },
+  {
+   "etichetta": "Pendenza della KL lungo il testo",
+   "valore": "-",
+   "nota": "testo troppo corto: servono almeno 4 blocchi da 32 posizioni dopo il primo",
+   "stato": null
+  },
+  {
+   "etichetta": "Controllo FP32",
+   "valore": "superato",
+   "nota": "due passaggi in FP32: KL nulla, NLL identiche bit a bit, top-1 al 100%",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "FP32 (controllo)",
+   "nota": "controllo: seconda copia in FP32, gli errori devono essere nulli · pesi FP32 tolti dalla GPU durante il confronto e riletti dal disco (memoria insufficiente per tenerli su CPU) · modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "KL massima",
+   "valore": "0.00e+00",
+   "nota": "posizione 0, che predice ' theory'",
+   "stato": null
+  },
+  {
+   "etichetta": "Accordo top-1",
+   "valore": "100 %",
+   "nota": "nessuna posizione con un token più probabile diverso",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "ΔNLL media",
+   "valore": "+0.00e+00 nat",
+   "nota": "nessuna differenza",
+   "stato": null
+  },
+  {
+   "etichetta": "Logit non finiti",
+   "valore": "0",
+   "nota": "nessuno",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Dispositivo",
+   "valore": "cuda",
+   "nota": "logit nel formato dei pesi, log_softmax, NLL e KL in FP64",
+   "stato": null
+  }
+ ],
+ "evidenzia": {}
+}

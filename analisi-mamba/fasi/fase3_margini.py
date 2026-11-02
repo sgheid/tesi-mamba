@@ -8,9 +8,9 @@ import torch
 from nucleo import confronto as cf
 from nucleo import grafica as g
 from nucleo.formato import fmt_int, fmt_perc, fmt_sci
-from nucleo.margini import ERR_MAX, ERR_MIN, N_ERR, mediana_errore
+from nucleo.margini import ERR_MAX, ERR_MIN, N_ERR, REGIME_ALTO, REGIME_BASSO, mediana_errore
 from nucleo.precisione import FORMATI, delta_baseline, descrivi_formato, indicatore_formato, passaggio_ridotto
-from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Risultato, valori
+from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Risultato, gerarchia, valori
 from nucleo.sonde import delta_fp32, delta_fp64, esegui_con_sonde, ingresso_delta
 
 # Istogramma dei margini: log10(1 - abar) da -16 a 0, a quarti di decade
@@ -46,6 +46,19 @@ in FP16 diminuisce del 30% scende a $2.8\cdot10^{-8}$ e diventa 1 (polo **nuovo*
 il cui $\Delta$ cresce del 25% sale a $3.1\cdot10^{-8}$ e torna sotto 1 (polo **perso**). In FP16 c'è anche una seconda
 causa, diversa: con $\Delta = 0$ vale $\bar a = 1$ qualunque sia $a$. Le due cause vengono contate separatamente.
 Separare $\Delta$ (Fase 2) da $\bar a$ serve proprio a capire se un polo su 1 dipende da $a$ oppure da $\Delta$.
+
+**Memoria sul testo (criterio $L/\tau$).** Un polo su 1 conta solo se, su questo testo, il modo avrebbe dimenticato
+qualcosa. Per ogni modo si somma il passo su tutti i token, $\theta = \sum_t \Delta_t$ (il *tempo interno* del canale),
+e si calcola $|a|\theta$: la frazione di stato che il modo conserva dall'inizio alla fine del testo è $\rho = e^{-|a|\theta}$.
+Tre regimi: con $|a|\theta > 10$ il modo dimentica entro il testo; con $0{,}1 \le |a|\theta \le 10$ è nel regime
+**critico**, con una memoria paragonabile alla lunghezza del testo; con $|a|\theta < 0{,}1$ conserva più del 90% dello
+stato ed è già, di fatto, un **integratore** su questo testo, per cui portare i suoi poli a 1 non cambia quasi nulla.
+I **poli su 1 potenzialmente rilevanti** sono gli integratori ($\Delta > 0$) nei modi con $|a|\theta \ge 0{,}1$: tutti gli
+altri poli su 1 sono certamente trascurabili su questo testo. Nel confronto si misura anche di quanto cambia $\rho$.
+
+**Esempio.** Con $a = -1$ e 3 000 token tutti con $\Delta = 10^{-8}$ si ha $|a|\theta = 3\cdot10^{-5}$: il modo conserva
+il 99,997% dello stato, e i suoi poli su 1 sono irrilevanti. Se uno solo dei 3 000 token ha $\Delta = 2$, allora
+$|a|\theta \approx 2$ e $\rho \approx 14\%$: il modo è critico, e un suo polo su 1 può contare.
 """
 
 COLONNE = [Colonna("strato", "Strato", "", "int"),
@@ -56,7 +69,11 @@ COLONNE = [Colonna("strato", "Strato", "", "int"),
            Colonna("su_1_congelati", "Poli su 1 con Delta = 0", "modi congelati", "int"),
            Colonna("su_1_integratori", "Poli su 1 con Delta > 0", "integratori veri", "int"),
            Colonna("su_1_esatto", "Poli su 1, arrotondamento esatto", "margine < 2^-25", "int"),
-           Colonna("in_0", "Poli in 0 in FP32", "numero", "int")]
+           Colonna("in_0", "Poli in 0 in FP32", "numero", "int"),
+           Colonna("integratori_rilevanti", "Poli su 1 potenzialmente rilevanti", "Δ > 0, modo con |a|θ ≥ 0,1", "int"),
+           Colonna("perc_critici", "Modi critici", "0,1 ≤ |a|θ ≤ 10, % dello strato", "perc"),
+           Colonna("perc_integratori", "Modi integratori di fatto", "|a|θ < 0,1, % dello strato", "perc"),
+           Colonna("perc_dimentica", "Modi che dimenticano", "|a|θ > 10, % dello strato", "perc")]
 
 LEGENDA = [("Polo più vicino a 1", "Il margine di stabilità più piccolo dello strato, calcolato esattamente (FP64)."),
            ("Memoria massima", "Quanti token servono a quel modo per dimenticare: circa 1/(1 - abar)."),
@@ -73,7 +90,40 @@ LEGENDA = [("Polo più vicino a 1", "Il margine di stabilità più piccolo dello
                                                 "'Poli su 1 in FP32' usa invece l'exp del dispositivo: sulla GPU, che "
                                                 "non arrotonda correttamente vicino a 1, sono fino a circa il doppio "
                                                 "(130M, testo di prova: 50 958 su CPU, 99 515 su GPU)."),
-           ("Poli in 0 in FP32", "Modi che si azzerano a ogni token: nessuna memoria, nessun rischio per la stabilità.")]
+           ("Poli in 0 in FP32", "Modi che si azzerano a ogni token: nessuna memoria, nessun rischio per la stabilità."),
+           ("Poli su 1 potenzialmente rilevanti", "Integratori (abar = 1 con Delta > 0) che cadono in modi con |a|θ ≥ 0,1, "
+                                                  "cioè modi che su questo testo dimenticano almeno il 10% dello stato: "
+                                                  "gli unici poli su 1 che possono cambiare lo stato in modo apprezzabile. "
+                                                  "Gli altri poli su 1 sono certamente trascurabili su questo testo."),
+           ("Modi critici", "Modi (canale × stato) con 0,1 ≤ |a|θ ≤ 10, θ = somma dei Delta del canale sul testo: "
+                            "memoria paragonabile alla lunghezza del testo, il regime in cui un polo su 1 conta."),
+           ("Modi integratori di fatto", "Modi con |a|θ < 0,1: conservano più del 90% dello stato sull'intero testo, "
+                                         "quindi su questo testo si comportano già da integratori."),
+           ("Modi che dimenticano", "Modi con |a|θ > 10: lo stato iniziale scende sotto 5·10⁻⁵ entro il testo.")]
+
+
+# Regime di memoria di ogni modo sul testo: 0 integratore di fatto, 1 critico, 2 dimentica
+def _regime(x):
+    return (x >= REGIME_BASSO).to(torch.int8) + (x > REGIME_ALTO).to(torch.int8)
+
+
+# Quote dei tre regimi su tutti i modi (canali × stati) di uno strato
+def _regimi(x):
+    modi = x.numel()
+    critici = int(((x >= REGIME_BASSO) & (x <= REGIME_ALTO)).sum().item())
+    return dict(modi=modi, perc_critici=critici / modi,
+                perc_integratori=int((x < REGIME_BASSO).sum().item()) / modi,
+                perc_dimentica=int((x > REGIME_ALTO).sum().item()) / modi)
+
+
+# Quote dei regimi su tutto il modello, pesate per il numero di modi di ogni strato
+def _regimi_totali(righe):
+    modi = sum(valori(righe, "modi"))
+    return {k: sum(r[k] * r["modi"] for r in righe) / modi for k in ("perc_dimentica", "perc_critici", "perc_integratori")}
+
+
+def _fmt_regimi(q):
+    return f"{fmt_perc(q['perc_dimentica'])} · {fmt_perc(q['perc_critici'])} · {fmt_perc(q['perc_integratori'])}"
 
 
 # Per ogni strato del modello FP32: abar in FP32 come il modello, margine 1 - abar esatto in FP64, a blocchi di token
@@ -88,14 +138,18 @@ def _margini(ctx):
             a32, a64 = -torch.exp(mixer.A_log.float()), -torch.exp(mixer.A_log.double())
             L, D = d32.shape
             passo = max(1, 4_000_000 // (D * a32.shape[1]))
-            margine_min, su_1, in_0, fuori, su_1_esatto, congelati = float("inf"), 0, 0, 0, 0, 0
+            margine_min, su_1, in_0, fuori, su_1_esatto, congelati, rilevanti = float("inf"), 0, 0, 0, 0, 0, 0
             isto = torch.zeros(N_BIN, dtype=torch.float64, device=d32.device)
+            # Memoria sul testo: |a|·theta di ogni modo (canali × stati), theta = somma dei Delta del canale
+            x = d64.sum(dim=0)[:, None] * (-a64)
+            rilevante = x >= REGIME_BASSO
             for s in range(0, L, passo):
                 abar32 = torch.exp(d32[s:s + passo, :, None] * a32)
                 margine64 = -torch.expm1(d64[s:s + passo, :, None] * a64)
                 margine_min = min(margine_min, margine64.min().item())
                 su_1 += int((abar32 == 1.0).sum().item())
                 congelati += int(((abar32 == 1.0) & (d32[s:s + passo] == 0)[:, :, None]).sum().item())
+                rilevanti += int(((abar32 == 1.0) & (d32[s:s + passo] > 0)[:, :, None] & rilevante).sum().item())
                 in_0 += int((abar32 == 0.0).sum().item())
                 fuori += int((abar32 > 1.0).sum().item())
                 su_1_esatto += int((margine64 < g.SOGLIA_FP32).sum().item())
@@ -105,7 +159,8 @@ def _margini(ctx):
             dati[i] = dict(strato=i, margine=margine_min,
                            memoria=1.0 / margine_min if margine_min > 0 else float("inf"),
                            su_1=su_1, perc_1=su_1 / totale, in_0=in_0, fuori=fuori, totale=totale,
-                           su_1_esatto=su_1_esatto, su_1_congelati=congelati, su_1_integratori=su_1 - congelati)
+                           su_1_esatto=su_1_esatto, su_1_congelati=congelati, su_1_integratori=su_1 - congelati,
+                           integratori_rilevanti=rilevanti, **_regimi(x))
             istogrammi[i] = isto.cpu().numpy()
             ctx.avanzamento((i + 1) / n, f"Strato {i + 1} di {n}")
         return hook
@@ -135,52 +190,20 @@ def _strati_peggiori(peggiori):
 
 
 def esegui(ctx):
-    nome = cf.formato_confronto(ctx)
-    return _solo_fp32(ctx) if nome is None else _con_confronto(ctx, nome)
+    return _con_confronto(ctx, cf.formato_confronto(ctx))
 
 
-# Solo FP32: il calcolo della vecchia Fase 2b, senza seconda copia
-def _solo_fp32(ctx):
-    righe, istogrammi = _margini(ctx)
-    n = len(righe)
-    totale, su_1, in_0, fuori, piu_vicino, peggiori = _sintesi(righe)
-    esatti = sum(valori(righe, "su_1_esatto"))
-    congelati = sum(valori(righe, "su_1_congelati"))
-
-    indicatori = [
-        Indicatore("Poli discreti esaminati", fmt_int(totale),
-                   f"{ctx.n_token} token × {ctx.info_modello['canali']} canali × "
-                   f"{ctx.info_modello['stati']} stati × {n} strati"),
-        Indicatore("Fuori dal cerchio (ā > 1)", fmt_int(fuori),
-                   "nessun polo instabile" if fuori == 0 else "esistono poli instabili",
-                   "ok" if fuori == 0 else "attenzione"),
-        Indicatore("Arrotondati a 1 in FP32", fmt_int(su_1),
-                   f"{fmt_perc(su_1 / totale)} dei poli: marginalmente stabili",
-                   "attenzione" if su_1 > 0 else "ok"),
-        Indicatore("Su 1 con arrotondamento esatto", fmt_int(esatti), _nota_esatti(su_1, esatti)),
-        Indicatore("Poli su 1: congelati · integratori", f"{fmt_int(congelati)} · {fmt_int(su_1 - congelati)}",
-                   "Δ = 0: stato fermo, il token non entra · Δ > 0: il modo somma il passato senza dimenticare"),
-        Indicatore("Polo più vicino a 1", fmt_sci(piu_vicino["margine"]),
-                   f"strato {piu_vicino['strato']}, memoria ≈ {fmt_sci(piu_vicino['memoria'])} token"),
-        Indicatore("Strati con più poli su 1", _strati_peggiori(peggiori),
-                   " · ".join(f"{r['strato']}: {fmt_int(r['su_1'])}" for r in peggiori)),
-        Indicatore("Arrotondati a 0 in FP32", fmt_int(in_0),
-                   f"{fmt_perc(in_0 / totale)}: senza memoria, innocui per la stabilità"),
-    ]
-
-    return Risultato(
-        codice="3",
-        titolo="Fase 3 - Poli discreti  abar = exp(Delta * a)",
-        descrizione="Calcolati in FP32 come nel modello; il margine esatto 1 - abar è calcolato in FP64.",
-        colonne=COLONNE,
-        righe=righe,
-        indicatori=indicatori,
-        legenda=LEGENDA,
-        grafici=[_grafico_margine(righe), _grafico_su_uno(righe), _grafico_tipi_su_uno(righe),
-                 _grafico_distribuzione(istogrammi, n)],
-        evidenzia={r["strato"]: f"n. {k} per poli su 1" for k, r in enumerate(peggiori, start=1)},
-        note_formato="FP32, con riferimento esatto in FP64 per il margine 1 - abar",
-    )
+# In primo piano: regimi di memoria sul testo, poli su 1 che possono contare, tipi di poli su 1 e poli nuovi.
+# Il conteggio con l'exp del dispositivo e il margine minimo passano in secondo piano
+SECONDARI = dict(
+    indicatori=("Formato dei pesi", "Poli discreti esaminati", "Fuori dal cerchio (ā > 1)", "Arrotondati a 1 in FP32",
+                "Polo più vicino a 1", "Strati con più poli su 1", "Arrotondati a 0 in FP32", "Poli discreti confrontati",
+                "Poli su 1, FP32 → formato ridotto", "Poli non più su 1 (persi)", "Errore tipico sul margine 1 − ā",
+                "Poli non finiti (inf/NaN)"),
+    colonne=("margine", "memoria", "su_1", "perc_1", "in_0", "perc_dimentica", "su_1_base", "su_1_rid", "persi",
+             "err_mediana", "non_finiti", "err_x_mediana"),
+    grafici=("Margine di stabilità minimo per strato", "Poli arrotondati a 1 in FP32, per strato",
+             "Errore tipico sul margine", "Margini della baseline vicino alla soglia FP32"))
 
 
 # FP32 e formato ridotto affiancati, più i poli nuovi e persi della vecchia Fase 3c
@@ -193,9 +216,19 @@ def _con_confronto(ctx, nome):
     _, su_1_r, in_0_r, fuori_r, piu_vicino_r, peggiori_r = _sintesi(righe_r)
     esatti, esatti_r = sum(valori(righe, "su_1_esatto")), sum(valori(righe_r, "su_1_esatto"))
     congelati, congelati_r = sum(valori(righe, "su_1_congelati")), sum(valori(righe_r, "su_1_congelati"))
+    rilevanti, rilevanti_r = sum(valori(righe, "integratori_rilevanti")), sum(valori(righe_r, "integratori_rilevanti"))
+    regimi, regimi_r = _regimi_totali(righe), _regimi_totali(righe_r)
 
     indicatori = [
         errori.indicatori[0],
+        Indicatore("Regimi dei modi sul testo", _fmt_regimi(regimi),
+                   f"dimenticano (|a|θ > 10) · critici (0,1–10) · integratori di fatto (< 0,1), su "
+                   f"{fmt_int(sum(valori(righe, 'modi')))} modi, θ = somma dei Δ sul testo · in {nome}: "
+                   f"{_fmt_regimi(regimi_r)}"),
+        cf.indicatore("Poli su 1 potenzialmente rilevanti", rilevanti, rilevanti_r, fmt_int, nome,
+                      "integratori (Δ > 0) in modi con |a|θ ≥ 0,1: gli unici poli su 1 che su questo testo possono "
+                      "cambiare lo stato; gli altri sono certamente trascurabili",
+                      "attenzione" if rilevanti or rilevanti_r else "ok"),
         Indicatore("Poli discreti esaminati", fmt_int(totale),
                    f"{ctx.n_token} token × {ctx.info_modello['canali']} canali × "
                    f"{ctx.info_modello['stati']} stati × {n} strati"),
@@ -221,7 +254,7 @@ def _con_confronto(ctx, nome):
                       "senza memoria, innocui per la stabilità"),
     ] + errori.indicatori[1:]
 
-    return Risultato(
+    return gerarchia(Risultato(
         codice="3",
         titolo=f"Fase 3 - Poli discreti  abar = exp(Delta * a), FP32 contro {nome}",
         descrizione="Calcolati in FP32 come nel modello; il margine esatto 1 - abar è calcolato in FP64. "
@@ -230,15 +263,55 @@ def _con_confronto(ctx, nome):
         righe=cf.righe_unite(righe, righe_r, errori.righe),
         indicatori=indicatori,
         legenda=LEGENDA + errori.legenda
-                + [(f"FP32 e {nome}", f"Le grandezze della Solo FP32 compaiono due volte: nel modello FP32 e nella copia "
+                + [(f"FP32 e {nome}", f"Le grandezze per strato compaiono due volte: nel modello FP32 e nella copia "
                                       f"con i pesi in {nome}, dove abar è calcolato in FP32 dal Delta e da a della copia.")],
-        grafici=[_grafico_margine(righe, righe_r, nome), _grafico_su_uno(righe, righe_r, nome),
-                 _grafico_tipi_su_uno(righe, righe_r, nome),
+        grafici=[_grafico_regimi(righe, righe_r, nome), _grafico_margine(righe, righe_r, nome),
+                 _grafico_su_uno(righe, righe_r, nome), _grafico_tipi_su_uno(righe, righe_r, nome),
                  _grafico_distribuzione(istogrammi, n, istogrammi_r, nome)] + errori.grafici,
         evidenzia=cf.evidenze_unite({r["strato"]: f"n. {k} per poli su 1" for k, r in enumerate(peggiori, start=1)},
                                     errori.evidenzia),
         note_formato="FP32 e " + errori.note_formato,
-    )
+    ), **SECONDARI)
+
+
+def _grafico_regimi(righe, righe_r, nome):
+    x = valori(righe, "strato")
+    fig = g.nuova_figura("Strato", "Modi dello strato  (%)", hover_unificato=False)
+    serie = [("integratori di fatto (|a|θ < 0,1)", "perc_integratori", g.BLU_CHIARO),
+             ("critici (0,1 ≤ |a|θ ≤ 10)", "perc_critici", g.BLU),
+             ("dimenticano (|a|θ > 10)", "perc_dimentica", g.ASSE)]
+    dati = pd.DataFrame({"strato": x})
+    for etichetta, chiave, colore in serie:
+        y = valori(righe, chiave)
+        fig.add_trace(go.Bar(x=x, y=y, name=f"{etichetta}, FP32", marker=dict(color=colore, line_width=0),
+                             hovertemplate=f"strato %{{x}}: %{{y:.2%}} {etichetta}<extra></extra>"))
+        dati[f"{etichetta} FP32"], dati[f"{etichetta} {nome}"] = y, valori(righe_r, chiave)
+    # Punto arancione al bordo superiore della parte critica nella copia (integratori di fatto + critici)
+    bordo_r = [i + c for i, c in zip(valori(righe_r, "perc_integratori"), valori(righe_r, "perc_critici"))]
+    fig.add_trace(go.Scatter(x=x, y=bordo_r, mode="markers", name=f"bordo dei critici, {nome}",
+                             marker=g.marcatore(8, g.ARANCIO), customdata=valori(righe_r, "perc_critici"),
+                             hovertemplate=f"strato %{{x}}: %{{customdata:.2%}} critici in {nome}<extra></extra>"))
+    fig.update_layout(barmode="stack", bargap=0.2)
+    fig.update_yaxes(tickformat=".0%", range=[0, 1])
+    g.asse_strati(fig, len(righe))
+    return Grafico(
+        "Regimi di memoria dei modi sul testo, per strato", fig,
+        "Per ogni modo, θ = somma dei Δ del canale su tutto il testo: |a|θ dice se il modo, su questo testo, dimentica "
+        "o si comporta già da integratore.",
+        f"""
+- Ogni barra è divisa nei tre regimi del Capitolo 2, sui {fmt_int(righe[0]['modi'])} modi (canali × stati) dello strato:
+  - **azzurro chiaro, integratori di fatto** ($|a|\\theta < 0{{,}}1$): conservano più del 90% dello stato sull'intero
+    testo, quindi un loro polo su 1 non cambia quasi nulla;
+  - **blu, critici** ($0{{,}}1 \\le |a|\\theta \\le 10$): memoria paragonabile al testo, il regime in cui un polo su 1 conta;
+  - **grigio, dimenticano** ($|a|\\theta > 10$): perdono lo stato iniziale entro il testo.
+- **Punti arancioni** = bordo superiore della parte critica nella copia in {nome} (integratori di fatto + critici): se
+  cadono sul bordo superiore della parte blu, la precisione ridotta non sposta i modi da un regime all'altro.
+- I regimi dipendono dalla **lunghezza del testo**: con un testo dieci volte più lungo θ cresce circa di dieci volte e
+  parte degli integratori di fatto diventa critica.
+- **Esempio di lettura:** in uno strato con il 70% di azzurro chiaro e il 5% di blu, i poli su 1 possono contare solo in
+  quel 5% di modi; sono quelli contati in "Poli su 1 potenzialmente rilevanti".
+""",
+        dati)
 
 
 def _grafico_margine(righe, righe_r=None, nome=None):
@@ -442,14 +515,14 @@ def _grafico_distribuzione(istogrammi, n, istogrammi_r=None, nome=None):
 
 
 # Poli nuovi e persi a bassa precisione: il calcolo della vecchia Fase 3c, sul passaggio ridotto condiviso.
-# In più, nello stesso ciclo, le grandezze della Solo FP32 per la copia (margine minimo, ā = 0, ā > 1, istogramma)
+# In più, nello stesso ciclo, le grandezze per strato della copia (margine minimo, ā = 0, ā > 1, istogramma, regimi)
 
 def _errori(ctx, nome, passaggio):
     tipo = FORMATI[nome]
     n = len(ctx.model.backbone.layers)
     A_log_base = {i: l.mixer.A_log.detach().float().cpu() for i, l in enumerate(ctx.model.backbone.layers)}
     base = delta_baseline(ctx, ctx.avanzamento)
-    dati, isto_err, zeri_err, vicini_base, vicini_su_1 = {}, {}, {}, {}, {}
+    dati, isto_err, zeri_err, vicini_base, vicini_su_1, rel_x_tutti = {}, {}, {}, {}, {}, []
     righe_r, istogrammi_r = [], {}
 
     # Per ogni strato, a blocchi di token: abar in FP32 come il modello, margini esatti in FP64
@@ -463,6 +536,10 @@ def _errori(ctx, nome, passaggio):
         a_r32, a_r64 = -torch.exp(A_r.float()), -torch.exp(A_r.double())
         L, D = d_r.shape
         passo = max(1, 4_000_000 // (D * a_r32.shape[1]))
+        # Memoria sul testo: |a|·theta di ogni modo nella baseline e nella copia (theta = somma dei Delta del canale)
+        x_b = d_b.double().sum(dim=0)[:, None] * (-a_b64)
+        x_r = d_r.double().sum(dim=0)[:, None] * (-a_r64)
+        rilevante_r, rilevanti_r = x_r >= REGIME_BASSO, 0
         c = dict(su_1_base=0, su_1_rid=0, nuovi_zero=0, nuovi_soglia=0, persi=0, non_finiti=0, err_nulli=0)
         isto = torch.zeros(N_ERR, dtype=torch.float64, device=dev)
         vb = torch.zeros(N_VIC, dtype=torch.float64, device=dev)
@@ -492,38 +569,52 @@ def _errori(ctx, nome, passaggio):
             lb = torch.log10(m_b.clamp_min(1e-300)).clamp_min(VIC_MIN).float()
             vb += torch.histc(lb, bins=N_VIC, min=VIC_MIN, max=VIC_MAX).double()
             v1 += torch.histc(lb[uno_r], bins=N_VIC, min=VIC_MIN, max=VIC_MAX).double()
-            # Grandezze della Solo FP32 per la copia, con lo stesso istogramma dei margini
+            # Grandezze per strato della copia, con lo stesso istogramma dei margini
             m_r_finiti = m_r[torch.isfinite(m_r)]
             if m_r_finiti.numel():
                 margine_min_r = min(margine_min_r, m_r_finiti.min().item())
             in_0_r += int((abar_r == 0.0).sum().item())
             congelati_r += int((uno_r & zero_r).sum().item())
+            rilevanti_r += int((uno_r & ~zero_r & rilevante_r).sum().item())
             fuori_r += int((abar_r > 1.0).sum().item())
             su_1_esatto_r += int((m_r_finiti < g.SOGLIA_FP32).sum().item())
             lg_r = torch.log10(m_r_finiti.clamp_min(1e-300)).clamp(LOG_MIN, LOG_MAX - 1e-9)
             isto_r += torch.histc(lg_r.float(), bins=N_BIN, min=LOG_MIN, max=LOG_MAX).double()
+        # Variazione della frazione di stato conservata sul testo, rho = exp(-|a|·theta), e regimi che cambiano
+        var_rho = (torch.exp(-x_r) - torch.exp(-x_b)).abs()
+        var_rho = var_rho[torch.isfinite(var_rho)]
+        rel_x = ((x_r - x_b).abs() / x_b)[torch.isfinite(x_r) & (x_b > 0)]
+        rel_x_tutti.append(rel_x.float().cpu())
         isto_err[i] = isto.cpu().numpy()
         zeri_err[i] = c.pop("err_nulli")
         vicini_base[i], vicini_su_1[i] = vb.cpu().numpy(), v1.cpu().numpy()
         totale = L * a_r32.numel()
         dati[i] = dict(strato=i, **c, nuovi=c["nuovi_zero"] + c["nuovi_soglia"],
-                       err_mediana=mediana_errore(zeri_err[i], isto_err[i]), totale=totale)
+                       err_mediana=mediana_errore(zeri_err[i], isto_err[i]), totale=totale,
+                       cambi_regime=int((_regime(x_r) != _regime(x_b)).sum().item()),
+                       var_rho_max=var_rho.max().item() if var_rho.numel() else float("nan"),
+                       err_x_mediana=rel_x.median().item() if rel_x.numel() else float("nan"))
         righe_r.append(dict(strato=i, margine=margine_min_r,
                             memoria=1.0 / margine_min_r if margine_min_r > 0 else float("inf"),
                             su_1=c["su_1_rid"], perc_1=c["su_1_rid"] / totale, in_0=in_0_r, fuori=fuori_r,
                             totale=totale, su_1_esatto=su_1_esatto_r, su_1_congelati=congelati_r,
-                            su_1_integratori=c["su_1_rid"] - congelati_r))
+                            su_1_integratori=c["su_1_rid"] - congelati_r, integratori_rilevanti=rilevanti_r,
+                            **_regimi(x_r)))
         istogrammi_r[i] = isto_r.cpu().numpy()
         ctx.avanzamento((i + 1) / n, f"{nome}, strato {i + 1} di {n}")
 
     esito = passaggio["esito"]
     righe = [dati[i] for i in range(n)]
     somma = {k: sum(valori(righe, k)) for k in ("su_1_base", "su_1_rid", "nuovi", "nuovi_zero", "nuovi_soglia",
-                                                "persi", "non_finiti", "totale")}
+                                                "persi", "non_finiti", "totale", "cambi_regime")}
     err_tipico = mediana_errore(sum(zeri_err.values()), sum(isto_err.values()))
+    var_max = max((r["var_rho_max"] for r in righe if math.isfinite(r["var_rho_max"])), default=float("nan"))
+    rel_x = torch.cat(rel_x_tutti)
+    err_x = rel_x.median().item() if rel_x.numel() else float("nan")
     controllo = tipo == torch.float32
     tutto_zero = (somma["nuovi"] == 0 and somma["persi"] == 0 and somma["non_finiti"] == 0
-                  and all(r["err_mediana"] == 0 for r in righe) and all(not v.any() for v in isto_err.values()))
+                  and all(r["err_mediana"] == 0 for r in righe) and all(not v.any() for v in isto_err.values())
+                  and somma["cambi_regime"] == 0 and all(r["var_rho_max"] == 0 for r in righe))
 
     indicatori = [
         indicatore_formato(nome, ctx.dispositivo, esito),
@@ -537,6 +628,10 @@ def _errori(ctx, nome, passaggio):
                    "attenzione" if somma["nuovi"] else "ok"),
         Indicatore("Poli non più su 1 (persi)", fmt_int(somma["persi"]),
                    "su 1 in FP32, sotto 1 nel formato ridotto", "attenzione" if somma["persi"] else "ok"),
+        Indicatore("Memoria sul testo: variazione massima", fmt_sci(var_max),
+                   f"massimo |Δρ| su tutti i modi, con ρ = e^(−|a|θ) la frazione di stato conservata sull'intero testo · "
+                   f"modi che cambiano regime: {fmt_int(somma['cambi_regime'])} · variazione relativa tipica di |a|θ: "
+                   f"{fmt_sci(err_x)}"),
         Indicatore("Errore tipico sul margine 1 − ā", fmt_sci(err_tipico),
                    "mediana su tutti i poli, risoluzione di un centesimo di decade"),
         Indicatore("Poli non finiti (inf/NaN)", fmt_int(somma["non_finiti"]),
@@ -567,13 +662,16 @@ def _errori(ctx, nome, passaggio):
                  Colonna("nuovi_soglia", "Nuovi su 1", "per margine < 2^-25", "int"),
                  Colonna("persi", "Persi", "non più su 1", "int"),
                  Colonna("err_mediana", "Errore tipico sul margine", "mediana, relativo", "sci"),
+                 Colonna("cambi_regime", "Modi che cambiano regime", "sul testo", "int"),
+                 Colonna("var_rho_max", "Memoria sul testo", "max |Δρ|, ρ = e^(−|a|θ)", "sci"),
+                 Colonna("err_x_mediana", "Variazione di |a|θ", "mediana, relativa", "sci"),
                  Colonna("non_finiti", "Non finiti", "inf/NaN", "int")],
         righe=righe,
         indicatori=indicatori,
         legenda=[("Poli su 1", "Poli (token × canali × stati) che valgono esattamente 1 in FP32."),
                  ("baseline FP32", "Nel modello con i pesi in FP32, con il Delta del modello (le operazioni di "
                                    "transformers) come riferimento del confronto. La colonna 'Poli su 1 in FP32 · FP32' "
-                                   "usa il Delta ricalcolato della Solo FP32: sul 130M coincidono; una differenza "
+                                   "usa il Delta ricalcolato in FP32 da questa fase: sul 130M coincidono; una differenza "
                                    "verrebbe solo dal diverso calcolo di Delta."),
                  ("formato ridotto", "Nel modello con i pesi in FP16/BF16."),
                  ("per Delta = 0", "Nuovi su 1 perché il Delta del formato ridotto vale 0: il token non entra nello stato."),
@@ -581,6 +679,13 @@ def _errori(ctx, nome, passaggio):
                  ("Persi", "Su 1 nella baseline, sotto 1 nel formato ridotto: il margine è salito sopra la soglia."),
                  ("Errore tipico sul margine", "Mediana di |m ridotto − m FP32| / m FP32, con m = 1 − abar esatto; "
                                                "calcolata da un istogramma a centesimi di decade."),
+                 ("Modi che cambiano regime", "Modi che passano da un regime di memoria all'altro (integratore di fatto, "
+                                              "critico, dimentica) tra baseline e formato ridotto."),
+                 ("Memoria sul testo", "Massimo su tutti i modi dello strato di |ρ ridotto − ρ FP32|, con ρ = e^(−|a|θ) la "
+                                       "frazione di stato che il modo conserva dall'inizio alla fine del testo: è la "
+                                       "variazione di memoria che conta secondo il criterio L/τ."),
+                 ("Variazione di |a|θ", "Mediana di |x ridotto − x FP32| / x FP32 con x = |a|θ: errore relativo tipico "
+                                        "sulla memoria dei modi sul testo, somma degli errori su Delta e su a."),
                  ("Non finiti", "Poli inf o NaN nel formato ridotto: contati ed esclusi.")],
         grafici=[_grafico_nuovi_persi(righe), _grafico_errore(righe), _grafico_vicini(vicini_base, vicini_su_1, n)],
         evidenzia=evidenzia,
