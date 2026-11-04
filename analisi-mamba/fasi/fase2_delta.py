@@ -92,7 +92,7 @@ SECONDARI = dict(
     grafici=("Mappa del passo Δ",))
 
 
-# FP32 e formato ridotto affiancati, più gli errori della vecchia Fase 3b
+# FP32 e formato ridotto affiancati, più gli errori del Delta a bassa precisione
 def _con_confronto(ctx, nome):
     righe, mediana_per_token = _delta(cf.tratto(ctx, 0.0, 0.2))
     passaggio = passaggio_ridotto(ctx, nome, cf.tratto(ctx, 0.2, 0.7).avanzamento)
@@ -223,7 +223,7 @@ def _grafico_mappa(mediana_per_token, n_strati, token):
     )
 
 
-# Errori del Delta a bassa precisione: il calcolo della vecchia Fase 3b, sul passaggio ridotto condiviso
+# Errori del Delta a bassa precisione, sul passaggio ridotto condiviso
 
 # Quantile esatto con kthvalue (torch.quantile ha un limite di 16M elementi)
 def _quantile(x, q):

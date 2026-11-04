@@ -509,6 +509,30 @@
  ],
  "indicatori": [
   {
+   "etichetta": "Passo tipico più piccolo",
+   "valore": "7.85e-05 → 7.84e-05",
+   "nota": "FP32 → FP16 · differenza relativa −0.110 % · strato 17 → 17",
+   "stato": null
+  },
+  {
+   "etichetta": "Δ minimo / massimo del modello",
+   "valore": "1.96e-12 / 8.50e+00 → 0.00e+00 / 8.50e+00",
+   "nota": "FP32 → FP16 · un minimo 0 vuol dire Δ azzerati dal formato",
+   "stato": null
+  },
+  {
+   "etichetta": "Errore tipico su Δ, da / a",
+   "valore": "3.35e-04 / 2.59e-03",
+   "nota": "mediana per strato: la più bassa nello strato 22, la più alta nello strato 17 (strato 0: 4.68e-04, ultimo: 4.01e-04)",
+   "stato": null
+  },
+  {
+   "etichetta": "Δ diventati 0",
+   "valore": "11 012",
+   "nota": "0.142 % dei Δ; 11 012 avevano già in FP32 Δ < 2⁻²⁵",
+   "stato": "attenzione"
+  },
+  {
    "etichetta": "Formato dei pesi",
    "valore": "FP16",
    "nota": "modello FP32 intatto (impronta dei pesi verificata)",
@@ -521,21 +545,9 @@
    "stato": null
   },
   {
-   "etichetta": "Passo tipico più piccolo",
-   "valore": "7.85e-05 → 7.84e-05",
-   "nota": "FP32 → FP16 · differenza relativa −0.110 % · strato 17 → 17",
-   "stato": null
-  },
-  {
    "etichetta": "Passo tipico più grande",
    "valore": "4.07e-01 → 4.06e-01",
    "nota": "FP32 → FP16 · differenza relativa −0.0185 % · strato 22 → 22",
-   "stato": null
-  },
-  {
-   "etichetta": "Δ minimo / massimo del modello",
-   "valore": "1.96e-12 / 8.50e+00 → 0.00e+00 / 8.50e+00",
-   "nota": "FP32 → FP16 · un minimo 0 vuol dire Δ azzerati dal formato",
    "stato": null
   },
   {
@@ -545,22 +557,10 @@
    "stato": null
   },
   {
-   "etichetta": "Errore tipico su Δ, da / a",
-   "valore": "3.35e-04 / 2.59e-03",
-   "nota": "mediana per strato: la più bassa nello strato 22, la più alta nello strato 17 (strato 0: 4.68e-04, ultimo: 4.01e-04)",
-   "stato": null
-  },
-  {
    "etichetta": "Errore al 99° percentile più alto",
    "valore": "1.00e+00",
    "nota": "strato 17: l'1% dei Δ sbaglia di più",
    "stato": null
-  },
-  {
-   "etichetta": "Δ diventati 0",
-   "valore": "11 012",
-   "nota": "0.142 % dei Δ; 11 012 avevano già in FP32 Δ < 2⁻²⁵",
-   "stato": "attenzione"
   },
   {
    "etichetta": "Valori non finiti (inf/NaN)",

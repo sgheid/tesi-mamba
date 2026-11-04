@@ -2,7 +2,7 @@
 # e salva in JSON righe per strato, indicatori, evidenze e formato; con --confronta segnala ogni differenza.
 # Le fasi con il parametro "Confronto" girano anche nel controllo FP32 contro FP32, la Fase 5 con la ricorrenza in FP32:
 # controlli che non compaiono nel menu e devono dare errori nulli. In versioni.json: librerie, modello e testo usati.
-# Riferimento attuale: prove/fotografia/ (130M su CPU), da confrontare dopo ogni modifica al codice.
+# Riferimento: prove/fotografia/ (130M su CPU), generato una volta e confrontato dopo ogni modifica al codice.
 # Uso:  python prove/fotografa_fasi.py cartella_uscita [--confronta cartella_riferimento] [--fasi 1,2]
 #                                      [--modello 130m] [--gpu]
 import argparse
@@ -115,8 +115,11 @@ def main():
                 print(f"  Attenzione, {k} diverso dal riferimento: {rif.get(k)} -> {ambiente.get(k)}")
 
     diverse = 0
+    # Le fasi extra (es. la 6) entrano solo se chieste con --fasi: la fotografia di riferimento non le contiene
     if arg.fasi:
         fasi = [f for f in fasi if f.codice in arg.fasi.split(",")]
+    else:
+        fasi = [f for f in fasi if not f.extra]
     for fase in fasi:
         for combinazione in itertools.product(*[scelte(q) for q in fase.parametri]):
             ctx.parametri = {q.chiave: v for q, v in zip(fase.parametri, combinazione)}

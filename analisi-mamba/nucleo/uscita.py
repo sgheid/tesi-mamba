@@ -63,8 +63,8 @@ def metriche(h32, W32, ids, h_r=None, W_r=None, avanzamento=lambda frazione, mes
 
 # Pendenza della KL lungo il testo: retta dei minimi quadrati di log10(KL media del blocco) contro log10(posizione
 # centrale del blocco), su blocchi di PENDENZA_BLOCCO posizioni, saltando il primo (poco contesto).
-# Pendenza ≈ 0: errore costante lungo il testo; ≈ 1: cresce come t; ≈ 2: cresce come t² (modi diventati integratori,
-# Capitolo 2). Restituisce (pendenza, R², blocchi usati); NaN con meno di PENDENZA_MIN blocchi utili
+# Pendenza ≈ 0: errore costante lungo il testo; ≈ 1: cresce come t; ≈ 2: cresce come t² (modi diventati
+# integratori). Restituisce (pendenza, R², blocchi usati); NaN con meno di PENDENZA_MIN blocchi utili
 PENDENZA_BLOCCO = 32
 PENDENZA_MIN = 4
 

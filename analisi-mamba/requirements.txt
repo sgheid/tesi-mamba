@@ -1,4 +1,4 @@
-# Versioni minime. Per riprodurre esattamente i risultati della tesi usare requirements-lock.txt.
+# Versioni minime. Per riprodurre esattamente i risultati usare requirements-lock.txt.
 # PyTorch NON e' in questo elenco: va installato a parte con la versione CUDA giusta (vedi README). Il resto:
 # transformers fissata: la Fase 5 sostituisce modeling_mamba.mamba_selective_scan, verificata su questa versione
 # (prove/prova_ricorrenza.py); con un'altra versione va rieseguita quella prova

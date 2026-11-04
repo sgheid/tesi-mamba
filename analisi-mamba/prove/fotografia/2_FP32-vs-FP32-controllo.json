@@ -509,6 +509,36 @@
  ],
  "indicatori": [
   {
+   "etichetta": "Passo tipico più piccolo",
+   "valore": "7.85e-05 → 7.85e-05",
+   "nota": "FP32 → FP32 (controllo) · nessuna differenza · strato 17 → 17",
+   "stato": null
+  },
+  {
+   "etichetta": "Δ minimo / massimo del modello",
+   "valore": "1.96e-12 / 8.50e+00 → 1.96e-12 / 8.50e+00",
+   "nota": "FP32 → FP32 (controllo)",
+   "stato": null
+  },
+  {
+   "etichetta": "Errore tipico su Δ, da / a",
+   "valore": "0.00e+00 / 0.00e+00",
+   "nota": "nessuna differenza in nessuno strato",
+   "stato": null
+  },
+  {
+   "etichetta": "Δ diventati 0",
+   "valore": "0",
+   "nota": "nessun token escluso dallo stato",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Controllo FP32",
+   "valore": "superato",
+   "nota": "due passaggi in FP32 devono dare Δ identici",
+   "stato": "ok"
+  },
+  {
    "etichetta": "Formato dei pesi",
    "valore": "FP32 (controllo)",
    "nota": "controllo: seconda copia in FP32, gli errori devono essere nulli · modello FP32 intatto (impronta dei pesi verificata)",
@@ -521,21 +551,9 @@
    "stato": null
   },
   {
-   "etichetta": "Passo tipico più piccolo",
-   "valore": "7.85e-05 → 7.85e-05",
-   "nota": "FP32 → FP32 (controllo) · nessuna differenza · strato 17 → 17",
-   "stato": null
-  },
-  {
    "etichetta": "Passo tipico più grande",
    "valore": "4.07e-01 → 4.07e-01",
    "nota": "FP32 → FP32 (controllo) · nessuna differenza · strato 22 → 22",
-   "stato": null
-  },
-  {
-   "etichetta": "Δ minimo / massimo del modello",
-   "valore": "1.96e-12 / 8.50e+00 → 1.96e-12 / 8.50e+00",
-   "nota": "FP32 → FP32 (controllo)",
    "stato": null
   },
   {
@@ -545,33 +563,15 @@
    "stato": null
   },
   {
-   "etichetta": "Errore tipico su Δ, da / a",
-   "valore": "0.00e+00 / 0.00e+00",
-   "nota": "nessuna differenza in nessuno strato",
-   "stato": null
-  },
-  {
    "etichetta": "Errore al 99° percentile più alto",
    "valore": "0.00e+00",
    "nota": "strato 0: l'1% dei Δ sbaglia di più",
    "stato": null
   },
   {
-   "etichetta": "Δ diventati 0",
-   "valore": "0",
-   "nota": "nessun token escluso dallo stato",
-   "stato": "ok"
-  },
-  {
    "etichetta": "Valori non finiti (inf/NaN)",
    "valore": "0",
    "nota": "nessun overflow",
-   "stato": "ok"
-  },
-  {
-   "etichetta": "Controllo FP32",
-   "valore": "superato",
-   "nota": "due passaggi in FP32 devono dare Δ identici",
    "stato": "ok"
   }
  ],

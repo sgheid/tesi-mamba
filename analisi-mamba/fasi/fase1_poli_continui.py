@@ -107,7 +107,7 @@ SECONDARI = dict(
     grafici=("Errore relativo su a per strato",))
 
 
-# FP32 e formato ridotto affiancati, più gli errori della vecchia Fase 3a
+# FP32 e formato ridotto affiancati, più gli errori dell'arrotondamento di A_log
 def _con_confronto(ctx, nome):
     tipo = FORMATI[nome]
     righe, log_abs = _poli(cf.tratto(ctx, 0.0, 0.3))
@@ -246,7 +246,7 @@ def _grafico_distribuzione(log_abs, log_abs_r=None, nome=None):
     )
 
 
-# Errori dell'arrotondamento di A_log: il calcolo della vecchia Fase 3a
+# Errori dell'arrotondamento di A_log
 
 # Metà della spaziatura del formato attorno a x: il massimo errore di arrotondamento (anche nei subnormali)
 def _mezza_spaziatura(x, tipo):

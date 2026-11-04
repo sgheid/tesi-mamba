@@ -5,6 +5,7 @@
   {
    "strato": 0,
    "nuovi_1": 29878,
+   "nuovi_1_rilevanti": 1099,
    "nuovi_1_soglia": 29878,
    "nuovi_0": 1025085,
    "nuovi_0_soglia": 1025085,
@@ -18,12 +19,15 @@
    "tau_mediana": 1244514.6117713845,
    "su_1_fp32": 7706,
    "nuovi_1_b1": 29878,
+   "stato_max_fp32": 3.01422119140625,
+   "stato_max_b1": 3.01422119140625,
    "stato_max_b2": 3.013671875,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 1,
    "nuovi_1": 17670,
+   "nuovi_1_rilevanti": 10038,
    "nuovi_1_soglia": 17670,
    "nuovi_0": 905082,
    "nuovi_0_soglia": 905082,
@@ -37,12 +41,15 @@
    "tau_mediana": 13645.831365889238,
    "su_1_fp32": 39,
    "nuovi_1_b1": 17668,
+   "stato_max_fp32": 0.4707273542881012,
+   "stato_max_b1": 0.47071269154548645,
    "stato_max_b2": 0.470703125,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 2,
    "nuovi_1": 41370,
+   "nuovi_1_rilevanti": 31200,
    "nuovi_1_soglia": 41370,
    "nuovi_0": 899188,
    "nuovi_0_soglia": 899188,
@@ -56,12 +63,15 @@
    "tau_mediana": 9660.508789898131,
    "su_1_fp32": 152,
    "nuovi_1_b1": 41371,
+   "stato_max_fp32": 0.30584806203842163,
+   "stato_max_b1": 0.306047260761261,
    "stato_max_b2": 0.3056640625,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 3,
    "nuovi_1": 22794,
+   "nuovi_1_rilevanti": 20774,
    "nuovi_1_soglia": 22794,
    "nuovi_0": 716257,
    "nuovi_0_soglia": 716257,
@@ -75,12 +85,15 @@
    "tau_mediana": 7498.942093324558,
    "su_1_fp32": 0,
    "nuovi_1_b1": 22798,
+   "stato_max_fp32": 0.6979708671569824,
+   "stato_max_b1": 0.6973504424095154,
    "stato_max_b2": 0.697265625,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 4,
    "nuovi_1": 3768,
+   "nuovi_1_rilevanti": 361,
    "nuovi_1_soglia": 3768,
    "nuovi_0": 871237,
    "nuovi_0_soglia": 871237,
@@ -94,12 +107,15 @@
    "tau_mediana": 1603245.3906900417,
    "su_1_fp32": 430,
    "nuovi_1_b1": 3769,
+   "stato_max_fp32": 0.697002112865448,
+   "stato_max_b1": 0.6964611411094666,
    "stato_max_b2": 0.6962890625,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 5,
    "nuovi_1": 2985,
+   "nuovi_1_rilevanti": 2103,
    "nuovi_1_soglia": 2985,
    "nuovi_0": 763932,
    "nuovi_0_soglia": 763932,
@@ -113,12 +129,15 @@
    "tau_mediana": 10351.42166679343,
    "su_1_fp32": 0,
    "nuovi_1_b1": 2986,
+   "stato_max_fp32": 0.7851524949073792,
+   "stato_max_b1": 0.7845469117164612,
    "stato_max_b2": 0.78466796875,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 6,
    "nuovi_1": 5889,
+   "nuovi_1_rilevanti": 2739,
    "nuovi_1_soglia": 5889,
    "nuovi_0": 903832,
    "nuovi_0_soglia": 903832,
@@ -132,12 +151,15 @@
    "tau_mediana": 34276.778654645044,
    "su_1_fp32": 652,
    "nuovi_1_b1": 5890,
+   "stato_max_fp32": 0.6844716668128967,
+   "stato_max_b1": 0.6844470500946045,
    "stato_max_b2": 0.68408203125,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 7,
    "nuovi_1": 12543,
+   "nuovi_1_rilevanti": 8758,
    "nuovi_1_soglia": 12543,
    "nuovi_0": 508636,
    "nuovi_0_soglia": 508636,
@@ -151,12 +173,15 @@
    "tau_mediana": 7673.6148936181935,
    "su_1_fp32": 202,
    "nuovi_1_b1": 12543,
+   "stato_max_fp32": 0.5636029243469238,
+   "stato_max_b1": 0.5636361241340637,
    "stato_max_b2": 0.56396484375,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 8,
    "nuovi_1": 10794,
+   "nuovi_1_rilevanti": 10312,
    "nuovi_1_soglia": 10794,
    "nuovi_0": 602107,
    "nuovi_0_soglia": 602107,
@@ -170,12 +195,15 @@
    "tau_mediana": 8609.937521846008,
    "su_1_fp32": 0,
    "nuovi_1_b1": 10792,
+   "stato_max_fp32": 0.6288006901741028,
+   "stato_max_b1": 0.6288591623306274,
    "stato_max_b2": 0.62939453125,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 9,
    "nuovi_1": 12305,
+   "nuovi_1_rilevanti": 8900,
    "nuovi_1_soglia": 12305,
    "nuovi_0": 435791,
    "nuovi_0_soglia": 435791,
@@ -189,12 +217,15 @@
    "tau_mediana": 11614.486138403438,
    "su_1_fp32": 5,
    "nuovi_1_b1": 12303,
+   "stato_max_fp32": 0.7132701277732849,
+   "stato_max_b1": 0.7132484316825867,
    "stato_max_b2": 0.71337890625,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 10,
    "nuovi_1": 13955,
+   "nuovi_1_rilevanti": 10605,
    "nuovi_1_soglia": 13955,
    "nuovi_0": 287068,
    "nuovi_0_soglia": 287068,
@@ -208,12 +239,15 @@
    "tau_mediana": 9660.508789898131,
    "su_1_fp32": 28,
    "nuovi_1_b1": 13953,
+   "stato_max_fp32": 1.073347806930542,
+   "stato_max_b1": 1.073351263999939,
    "stato_max_b2": 1.0732421875,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 11,
    "nuovi_1": 193983,
+   "nuovi_1_rilevanti": 143936,
    "nuovi_1_soglia": 193983,
    "nuovi_0": 361168,
    "nuovi_0_soglia": 361168,
@@ -227,12 +261,15 @@
    "tau_mediana": 11885.022274370189,
    "su_1_fp32": 274,
    "nuovi_1_b1": 193992,
+   "stato_max_fp32": 0.5830081105232239,
+   "stato_max_b1": 0.5830017328262329,
    "stato_max_b2": 0.5830078125,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 12,
    "nuovi_1": 395844,
+   "nuovi_1_rilevanti": 359403,
    "nuovi_1_soglia": 395844,
    "nuovi_0": 232934,
    "nuovi_0_soglia": 232934,
@@ -246,12 +283,15 @@
    "tau_mediana": 11091.748152624008,
    "su_1_fp32": 1291,
    "nuovi_1_b1": 395862,
+   "stato_max_fp32": 0.8050135970115662,
+   "stato_max_b1": 0.804915726184845,
    "stato_max_b2": 0.8046875,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 13,
    "nuovi_1": 39545,
+   "nuovi_1_rilevanti": 27088,
    "nuovi_1_soglia": 39545,
    "nuovi_0": 330546,
    "nuovi_0_soglia": 330546,
@@ -265,12 +305,15 @@
    "tau_mediana": 12161.86000646368,
    "su_1_fp32": 40,
    "nuovi_1_b1": 39548,
+   "stato_max_fp32": 1.319609522819519,
+   "stato_max_b1": 1.3209586143493652,
    "stato_max_b2": 1.3212890625,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 14,
    "nuovi_1": 68057,
+   "nuovi_1_rilevanti": 67486,
    "nuovi_1_soglia": 68057,
    "nuovi_0": 176189,
    "nuovi_0_soglia": 176189,
@@ -284,12 +327,15 @@
    "tau_mediana": 8413.951416451957,
    "su_1_fp32": 207,
    "nuovi_1_b1": 68020,
+   "stato_max_fp32": 1.0585838556289673,
+   "stato_max_b1": 1.0583196878433228,
    "stato_max_b2": 1.0576171875,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 15,
    "nuovi_1": 446585,
+   "nuovi_1_rilevanti": 409474,
    "nuovi_1_soglia": 446585,
    "nuovi_0": 651859,
    "nuovi_0_soglia": 651859,
@@ -303,12 +349,15 @@
    "tau_mediana": 22130.947096056363,
    "su_1_fp32": 3953,
    "nuovi_1_b1": 446495,
+   "stato_max_fp32": 2.532219409942627,
+   "stato_max_b1": 2.5318491458892822,
    "stato_max_b2": 2.533203125,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 16,
    "nuovi_1": 958698,
+   "nuovi_1_rilevanti": 880204,
    "nuovi_1_soglia": 958698,
    "nuovi_0": 47969,
    "nuovi_0_soglia": 47969,
@@ -322,12 +371,15 @@
    "tau_mediana": 13645.831365889238,
    "su_1_fp32": 10099,
    "nuovi_1_b1": 958504,
+   "stato_max_fp32": 1.7841979265213013,
+   "stato_max_b1": 1.7841979265213013,
    "stato_max_b2": 1.7841796875,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 17,
    "nuovi_1": 2019827,
+   "nuovi_1_rilevanti": 1783010,
    "nuovi_1_soglia": 2019827,
    "nuovi_0": 17198,
    "nuovi_0_soglia": 17198,
@@ -341,12 +393,15 @@
    "tau_mediana": 28510.182675039097,
    "su_1_fp32": 25018,
    "nuovi_1_b1": 2019531,
+   "stato_max_fp32": 0.7564886212348938,
+   "stato_max_b1": 0.7565147280693054,
    "stato_max_b2": 0.75634765625,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 18,
    "nuovi_1": 61754,
+   "nuovi_1_rilevanti": 52343,
    "nuovi_1_soglia": 61754,
    "nuovi_0": 373066,
    "nuovi_0_soglia": 373066,
@@ -360,12 +415,15 @@
    "tau_mediana": 10351.42166679343,
    "su_1_fp32": 824,
    "nuovi_1_b1": 61726,
+   "stato_max_fp32": 0.8442661166191101,
+   "stato_max_b1": 0.8444076776504517,
    "stato_max_b2": 0.8447265625,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 19,
    "nuovi_1": 221823,
+   "nuovi_1_rilevanti": 214708,
    "nuovi_1_soglia": 221823,
    "nuovi_0": 420986,
    "nuovi_0_soglia": 420986,
@@ -379,12 +437,15 @@
    "tau_mediana": 10115.794542598982,
    "su_1_fp32": 0,
    "nuovi_1_b1": 221775,
+   "stato_max_fp32": 2.1359403133392334,
+   "stato_max_b1": 2.1348249912261963,
    "stato_max_b2": 2.1328125,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 20,
    "nuovi_1": 295659,
+   "nuovi_1_rilevanti": 272519,
    "nuovi_1_soglia": 295659,
    "nuovi_0": 226267,
    "nuovi_0_soglia": 226267,
@@ -398,12 +459,15 @@
    "tau_mediana": 9015.711376059571,
    "su_1_fp32": 24,
    "nuovi_1_b1": 295635,
+   "stato_max_fp32": 0.5766717791557312,
+   "stato_max_b1": 0.5765813589096069,
    "stato_max_b2": 0.57666015625,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 21,
    "nuovi_1": 11159,
+   "nuovi_1_rilevanti": 8332,
    "nuovi_1_soglia": 11159,
    "nuovi_0": 1002775,
    "nuovi_0_soglia": 1002775,
@@ -417,12 +481,15 @@
    "tau_mediana": 13963.68361055939,
    "su_1_fp32": 0,
    "nuovi_1_b1": 11156,
+   "stato_max_fp32": 27.456851959228516,
+   "stato_max_b1": 27.458784103393555,
    "stato_max_b2": 27.453125,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 22,
    "nuovi_1": 15137,
+   "nuovi_1_rilevanti": 8046,
    "nuovi_1_soglia": 15137,
    "nuovi_0": 1455250,
    "nuovi_0_soglia": 1455250,
@@ -436,12 +503,15 @@
    "tau_mediana": 16788.040181225588,
    "su_1_fp32": 14,
    "nuovi_1_b1": 15137,
+   "stato_max_fp32": 18.078197479248047,
+   "stato_max_b1": 18.07970428466797,
    "stato_max_b2": 18.078125,
    "non_finiti_stato_b2": 0
   },
   {
    "strato": 23,
    "nuovi_1": 3907,
+   "nuovi_1_rilevanti": 2175,
    "nuovi_1_soglia": 3907,
    "nuovi_0": 1340872,
    "nuovi_0_soglia": 1340872,
@@ -455,6 +525,8 @@
    "tau_mediana": 10115.794542598982,
    "su_1_fp32": 0,
    "nuovi_1_b1": 3907,
+   "stato_max_fp32": 60.01490783691406,
+   "stato_max_b1": 60.01396942138672,
    "stato_max_b2": 60.0,
    "non_finiti_stato_b2": 0
   }
@@ -467,28 +539,64 @@
    "stato": "attenzione"
   },
   {
-   "etichetta": "Soglie verificate",
-   "valore": "1 − ā ≤ 2^-12 → 1 · ā ≤ 2^-25 → 0",
-   "nota": "ricavate sul dispositivo (cpu) uguali alle attese per FP16 e BF16",
-   "stato": "ok"
-  },
-  {
    "etichetta": "Poli nuovi su 1",
    "valore": "4 905 929",
    "nota": "3.94 % dei poli · FP16: 4 905 929 · BF16: 11 926 453",
    "stato": "attenzione"
   },
   {
-   "etichetta": "Conteggio dalle soglie",
-   "valore": "coincide",
-   "nota": "nuovi su 1 e a 0 contati sia arrotondando sia con le soglie verificate",
-   "stato": "ok"
+   "etichetta": "Nuovi su 1 potenzialmente rilevanti",
+   "valore": "4 335 613",
+   "nota": "88.4 % dei nuovi su 1 cadono in modi con |a|θ ≥ 0,1, cioè con memoria non trascurabile su questo testo · FP16: 4 335 613 · BF16: 11 280 591",
+   "stato": "attenzione"
   },
   {
    "etichetta": "Memoria persa (τ dei nuovi su 1)",
    "valore": "mediana 1.68e+04 · max 3.36e+07",
    "nota": "token che quei modi impiegavano a dimenticare in FP32",
    "stato": null
+  },
+  {
+   "etichetta": "Perplexity FP32 → B1 → B2",
+   "valore": "24.4533 → 24.4530 → 24.4524",
+   "nota": "B1 −0.00132 % · B2 −0.00388 % · su 210 predizioni",
+   "stato": null
+  },
+  {
+   "etichetta": "KL media B1 · B2",
+   "valore": "5.38e-07 · 1.12e-06",
+   "nota": "nat · mediana 2.88e-07 · 7.64e-07 · P99 3.00e-06 · 5.93e-06",
+   "stato": null
+  },
+  {
+   "etichetta": "KL: primo → ultimo quarto del testo",
+   "valore": "B1 8.98e-08 → 1.04e-06 · B2 3.94e-07 → 1.58e-06",
+   "nota": "un aumento indica errore che si accumula con il contesto",
+   "stato": null
+  },
+  {
+   "etichetta": "Pendenza della KL lungo il testo, B1 · B2",
+   "valore": "+1.37 · +0.75",
+   "nota": "retta di log KL contro log posizione, 6 blocchi da 32 posizioni, R² = 0.97 · 0 = errore costante, 1 = cresce come t, 2 = come t² (accumulo nei modi su 1) · R² di B2 = 0.74",
+   "stato": null
+  },
+  {
+   "etichetta": "Stato massimo |h|: FP32 → B1 → B2",
+   "valore": "6.00e+01 → 6.00e+01 → 6.00e+01",
+   "nota": "su tutti gli strati e i token · valori non finiti in B2: 0 · massimo finito di FP16: 6.55e+04",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Soglie verificate",
+   "valore": "1 − ā ≤ 2^-12 → 1 · ā ≤ 2^-25 → 0",
+   "nota": "ricavate sul dispositivo (cpu) uguali alle attese per FP16 e BF16",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Conteggio dalle soglie",
+   "valore": "coincide",
+   "nota": "nuovi su 1 e a 0 contati sia arrotondando sia con le soglie verificate",
+   "stato": "ok"
   },
   {
    "etichetta": "Strati con più poli nuovi",
@@ -527,18 +635,6 @@
    "stato": null
   },
   {
-   "etichetta": "Perplexity FP32 → B1 → B2",
-   "valore": "24.4533 → 24.4530 → 24.4524",
-   "nota": "B1 −0.00132 % · B2 −0.00388 % · su 210 predizioni",
-   "stato": null
-  },
-  {
-   "etichetta": "KL media B1 · B2",
-   "valore": "5.38e-07 · 1.12e-06",
-   "nota": "nat · mediana 2.88e-07 · 7.64e-07 · P99 3.00e-06 · 5.93e-06",
-   "stato": null
-  },
-  {
    "etichetta": "KL massima B1 · B2",
    "valore": "4.81e-06 · 1.28e-05",
    "nota": "posizioni 184 · 107",
@@ -555,18 +651,6 @@
    "valore": "-1.32e-05 · -3.88e-05 nat",
    "nota": "positiva = il token vero riceve meno probabilità che in FP32",
    "stato": null
-  },
-  {
-   "etichetta": "KL: primo → ultimo quarto del testo",
-   "valore": "B1 8.98e-08 → 1.04e-06 · B2 3.94e-07 → 1.58e-06",
-   "nota": "un aumento indica errore che si accumula con il contesto",
-   "stato": null
-  },
-  {
-   "etichetta": "Stato in B2",
-   "valore": "max |h| 6.00e+01 · non finiti 0",
-   "nota": "massimo finito di FP16: 6.55e+04",
-   "stato": "ok"
   },
   {
    "etichetta": "Logit non finiti B1 · B2",

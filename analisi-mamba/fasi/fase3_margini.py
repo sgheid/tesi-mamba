@@ -206,7 +206,7 @@ SECONDARI = dict(
              "Errore tipico sul margine", "Margini della baseline vicino alla soglia FP32"))
 
 
-# FP32 e formato ridotto affiancati, più i poli nuovi e persi della vecchia Fase 3c
+# FP32 e formato ridotto affiancati, più i poli nuovi e persi a bassa precisione
 def _con_confronto(ctx, nome):
     righe, istogrammi = _margini(cf.tratto(ctx, 0.0, 0.2))
     n = len(righe)
@@ -299,7 +299,7 @@ def _grafico_regimi(righe, righe_r, nome):
         "Per ogni modo, θ = somma dei Δ del canale su tutto il testo: |a|θ dice se il modo, su questo testo, dimentica "
         "o si comporta già da integratore.",
         f"""
-- Ogni barra è divisa nei tre regimi del Capitolo 2, sui {fmt_int(righe[0]['modi'])} modi (canali × stati) dello strato:
+- Ogni barra è divisa nei tre regimi di memoria, sui {fmt_int(righe[0]['modi'])} modi (canali × stati) dello strato:
   - **azzurro chiaro, integratori di fatto** ($|a|\\theta < 0{{,}}1$): conservano più del 90% dello stato sull'intero
     testo, quindi un loro polo su 1 non cambia quasi nulla;
   - **blu, critici** ($0{{,}}1 \\le |a|\\theta \\le 10$): memoria paragonabile al testo, il regime in cui un polo su 1 conta;
@@ -514,7 +514,7 @@ def _grafico_distribuzione(istogrammi, n, istogrammi_r=None, nome=None):
     )
 
 
-# Poli nuovi e persi a bassa precisione: il calcolo della vecchia Fase 3c, sul passaggio ridotto condiviso.
+# Poli nuovi e persi a bassa precisione, sul passaggio ridotto condiviso.
 # In più, nello stesso ciclo, le grandezze per strato della copia (margine minimo, ā = 0, ā > 1, istogramma, regimi)
 
 def _errori(ctx, nome, passaggio):

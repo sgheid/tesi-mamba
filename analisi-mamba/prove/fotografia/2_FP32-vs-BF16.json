@@ -509,6 +509,30 @@
  ],
  "indicatori": [
   {
+   "etichetta": "Passo tipico più piccolo",
+   "valore": "7.85e-05 → 7.96e-05",
+   "nota": "FP32 → BF16 · differenza relativa +1.41 % · strato 17 → 17",
+   "stato": null
+  },
+  {
+   "etichetta": "Δ minimo / massimo del modello",
+   "valore": "1.96e-12 / 8.50e+00 → 2.13e-12 / 8.50e+00",
+   "nota": "FP32 → BF16",
+   "stato": null
+  },
+  {
+   "etichetta": "Errore tipico su Δ, da / a",
+   "valore": "2.72e-03 / 1.89e-02",
+   "nota": "mediana per strato: la più bassa nello strato 22, la più alta nello strato 17 (strato 0: 3.93e-03, ultimo: 3.26e-03)",
+   "stato": null
+  },
+  {
+   "etichetta": "Δ diventati 0",
+   "valore": "0",
+   "nota": "nessun token escluso dallo stato",
+   "stato": "ok"
+  },
+  {
    "etichetta": "Formato dei pesi",
    "valore": "BF16",
    "nota": "modello FP32 intatto (impronta dei pesi verificata)",
@@ -521,21 +545,9 @@
    "stato": null
   },
   {
-   "etichetta": "Passo tipico più piccolo",
-   "valore": "7.85e-05 → 7.96e-05",
-   "nota": "FP32 → BF16 · differenza relativa +1.41 % · strato 17 → 17",
-   "stato": null
-  },
-  {
    "etichetta": "Passo tipico più grande",
    "valore": "4.07e-01 → 4.08e-01",
    "nota": "FP32 → BF16 · differenza relativa +0.402 % · strato 22 → 22",
-   "stato": null
-  },
-  {
-   "etichetta": "Δ minimo / massimo del modello",
-   "valore": "1.96e-12 / 8.50e+00 → 2.13e-12 / 8.50e+00",
-   "nota": "FP32 → BF16",
    "stato": null
   },
   {
@@ -545,22 +557,10 @@
    "stato": null
   },
   {
-   "etichetta": "Errore tipico su Δ, da / a",
-   "valore": "2.72e-03 / 1.89e-02",
-   "nota": "mediana per strato: la più bassa nello strato 22, la più alta nello strato 17 (strato 0: 3.93e-03, ultimo: 3.26e-03)",
-   "stato": null
-  },
-  {
    "etichetta": "Errore al 99° percentile più alto",
    "valore": "8.71e-02",
    "nota": "strato 17: l'1% dei Δ sbaglia di più",
    "stato": null
-  },
-  {
-   "etichetta": "Δ diventati 0",
-   "valore": "0",
-   "nota": "nessun token escluso dallo stato",
-   "stato": "ok"
   },
   {
    "etichetta": "Valori non finiti (inf/NaN)",

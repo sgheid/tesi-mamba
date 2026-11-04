@@ -1,4 +1,4 @@
-# Ambiente esatto con cui sono stati prodotti i risultati della tesi: pip freeze del .venv del PC fisso
+# Ambiente esatto con cui sono stati prodotti i risultati: pip freeze del .venv del PC fisso
 # (Windows 11, RTX 2060 SUPER, Python 3.14.7), 22/10/2026. Installazione: pip install -r requirements-lock.txt
 # PyTorch con CUDA 12.6 viene dall'indice di PyTorch:
 --extra-index-url https://download.pytorch.org/whl/cu126

@@ -1,6 +1,6 @@
 import numpy as np
 
-# Regimi di memoria sul testo (criterio L/tau, Capitolo 2): x = |a|·theta, con theta = somma dei Delta del canale sul
+# Regimi di memoria sul testo (criterio L/tau): x = |a|·theta, con theta = somma dei Delta del canale sul
 # testo. x > REGIME_ALTO: il modo dimentica entro il testo; x < REGIME_BASSO: conserva più del 90% dello stato
 # (integratore di fatto sul testo); in mezzo il regime critico. Usati dalle Fasi 3 e 5
 REGIME_BASSO, REGIME_ALTO = 0.1, 10.0

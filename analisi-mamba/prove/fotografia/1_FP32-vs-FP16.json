@@ -581,27 +581,9 @@
  ],
  "indicatori": [
   {
-   "etichetta": "Poli continui esaminati",
-   "valore": "589 824",
-   "nota": "24 strati × 1536 canali × 16 stati",
-   "stato": null
-  },
-  {
-   "etichetta": "Poli instabili (a ≥ 0)",
-   "valore": "0 → 0",
-   "nota": "FP32 → FP16 · nessuna differenza · tutti i modi restano asintoticamente stabili",
-   "stato": "ok"
-  },
-  {
    "etichetta": "Polo più lento",
    "valore": "-2.13e-06 → -2.14e-06",
    "nota": "FP32 → FP16 · differenza relativa −0.249 % · strato 7 → 7, τ = 4.68e+05 → 4.67e+05",
-   "stato": null
-  },
-  {
-   "etichetta": "Polo più veloce",
-   "valore": "-2.84e+08 → -2.85e+08",
-   "nota": "FP32 → FP16 · differenza relativa −0.573 % · strato 16 → 16",
    "stato": null
   },
   {
@@ -627,6 +609,24 @@
    "valore": "0",
    "nota": "0 % dei poli",
    "stato": "ok"
+  },
+  {
+   "etichetta": "Poli continui esaminati",
+   "valore": "589 824",
+   "nota": "24 strati × 1536 canali × 16 stati",
+   "stato": null
+  },
+  {
+   "etichetta": "Poli instabili (a ≥ 0)",
+   "valore": "0 → 0",
+   "nota": "FP32 → FP16 · nessuna differenza · tutti i modi restano asintoticamente stabili",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Polo più veloce",
+   "valore": "-2.84e+08 → -2.85e+08",
+   "nota": "FP32 → FP16 · differenza relativa −0.573 % · strato 16 → 16",
+   "stato": null
   },
   {
    "etichetta": "Errore entro il limite teorico",

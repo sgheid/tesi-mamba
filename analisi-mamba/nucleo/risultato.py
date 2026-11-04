@@ -21,6 +21,8 @@ class Fase:
     usa_testo: bool
     esegui: Callable
     parametri: list = field(default_factory=list)
+    # Fase extra: non parte con "Esegui tutte le fasi", si esegue a parte dal suo pulsante
+    extra: bool = False
 
 
 @dataclass

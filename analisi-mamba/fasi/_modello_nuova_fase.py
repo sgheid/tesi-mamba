@@ -1,14 +1,14 @@
 # Modello per una nuova fase (ignorato perché il nome inizia con "_").
-# Copialo in fasi/fase3a_<nome>.py, cambia i campi di FASE, scrivi il calcolo in esegui()
-# e premi "Ricarica le fasi" nell'app: la fase compare nel menu.
+# Copialo in fasi/fase7_<nome>.py, cambia i campi di FASE, scrivi il calcolo in esegui()
+# e premi "Ricarica le fasi" nell'app: la fase compare tra le schede (con extra=True tra le fasi extra).
+# Per leggere Delta dal testo: nucleo.sonde (esegui_con_sonde, ingresso_delta, delta_fp32).
 import pandas as pd
 import plotly.graph_objects as go
 import torch
 
 from nucleo import grafica as g
-from nucleo.formato import fmt_int, fmt_sci
+from nucleo.formato import fmt_sci
 from nucleo.risultato import Colonna, Fase, Grafico, Indicatore, Parametro, Risultato, valori
-from nucleo.sonde import delta_fp32, esegui_con_sonde, ingresso_delta
 
 SPIEGAZIONE = r"""
 **Cosa misura.** ...

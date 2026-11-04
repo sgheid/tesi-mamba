@@ -57,12 +57,6 @@
  ],
  "indicatori": [
   {
-   "etichetta": "Formato dei pesi",
-   "valore": "FP32 (controllo)",
-   "nota": "controllo: seconda copia in FP32, gli errori devono essere nulli · modello FP32 intatto (impronta dei pesi verificata)",
-   "stato": "ok"
-  },
-  {
    "etichetta": "Perplexity",
    "valore": "24.4533 → 24.4533",
    "nota": "FP32 → FP32 (controllo) · nessuna differenza · su 210 predizioni",
@@ -73,6 +67,30 @@
    "valore": "0.00e+00",
    "nota": "nat per posizione · mediana 0.00e+00 · P99 0.00e+00",
    "stato": null
+  },
+  {
+   "etichetta": "KL: primo → ultimo quarto del testo",
+   "valore": "0.00e+00 → 0.00e+00",
+   "nota": "nessuna differenza",
+   "stato": null
+  },
+  {
+   "etichetta": "Pendenza della KL lungo il testo",
+   "valore": "-",
+   "nota": "testo troppo corto: servono almeno 4 blocchi da 32 posizioni dopo il primo",
+   "stato": null
+  },
+  {
+   "etichetta": "Controllo FP32",
+   "valore": "superato",
+   "nota": "due passaggi in FP32: KL nulla, NLL identiche bit a bit, top-1 al 100%",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "FP32 (controllo)",
+   "nota": "controllo: seconda copia in FP32, gli errori devono essere nulli · modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
   },
   {
    "etichetta": "KL massima",
@@ -93,12 +111,6 @@
    "stato": null
   },
   {
-   "etichetta": "KL: primo → ultimo quarto del testo",
-   "valore": "0.00e+00 → 0.00e+00",
-   "nota": "nessuna differenza",
-   "stato": null
-  },
-  {
    "etichetta": "Logit non finiti",
    "valore": "0",
    "nota": "nessuno",
@@ -109,12 +121,6 @@
    "valore": "cpu",
    "nota": "logit nel formato dei pesi, log_softmax, NLL e KL in FP64",
    "stato": null
-  },
-  {
-   "etichetta": "Controllo FP32",
-   "valore": "superato",
-   "nota": "due passaggi in FP32: KL nulla, NLL identiche bit a bit, top-1 al 100%",
-   "stato": "ok"
   }
  ],
  "evidenzia": {}

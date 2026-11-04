@@ -9,9 +9,9 @@ import torch.nn.functional as F
 # prodotto A·Δ prima dell'exp. Con i pesi FP32 (5,5 GB) sulla GPU da 8 GB non ci stanno.
 # Qui le stesse operazioni, nello stesso ordine, sono fatte un blocco di token alla volta: ogni elemento di
 # discrete_A e deltaB_u è calcolato con la stessa operazione elemento per elemento, e il ciclo sui token è identico,
-# quindi stato e uscita sono identici bit a bit (verifica: README, "Ricorrenza a blocchi").
+# quindi stato e uscita sono identici bit a bit (verifica: prove/prova_blocchi.py).
 # I blocchi si usano solo sulla GPU e solo se un tensore intero supererebbe SOGLIA_BYTE: il 130M fino a 2048 token
-# e ogni esecuzione su CPU passano dalla funzione originale, esattamente come prima.
+# e ogni esecuzione su CPU passano dalla funzione originale.
 SOGLIA_BYTE = 256 * 2 ** 20
 BLOCCO_BYTE = 64 * 2 ** 20
 # Per le prove: impone i token per blocco su ogni dispositivo (es. set MAMBA_TOKEN_PER_BLOCCO=50)

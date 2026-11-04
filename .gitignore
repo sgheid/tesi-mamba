@@ -6,14 +6,9 @@ __pycache__/
 risultati/
 ~$*.xlsx
 
-# Solo in locale: copia zippata dell'app, prototipi prima dell'app, testi di input
+# Solo in locale: script originali precedenti all'app, archivi, testi di input
+/script_originali/
 *.zip
-/fase1_autovalori_continui (1).py
-/fase2a_delta.py
-/fase2b_poli_discreti.py
-/leggi_valori.py
-/tesi_mamba.py
-/test.py
 analisi-mamba/testi/
 
 # Editor e sistema

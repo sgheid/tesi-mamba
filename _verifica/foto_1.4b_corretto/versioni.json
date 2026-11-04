@@ -1,9 +1,0 @@
-{
- "PyTorch": "2.14.1+cu126",
- "transformers": "5.17.0",
- "numpy": "2.5.3",
- "dispositivo": "cuda",
- "modello": "state-spaces/mamba-1.4b-hf",
- "commit": "6e46eae61c",
- "token": 211
-}

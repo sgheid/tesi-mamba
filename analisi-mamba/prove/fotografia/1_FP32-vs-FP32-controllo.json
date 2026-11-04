@@ -581,27 +581,9 @@
  ],
  "indicatori": [
   {
-   "etichetta": "Poli continui esaminati",
-   "valore": "589 824",
-   "nota": "24 strati × 1536 canali × 16 stati",
-   "stato": null
-  },
-  {
-   "etichetta": "Poli instabili (a ≥ 0)",
-   "valore": "0 → 0",
-   "nota": "FP32 → FP32 (controllo) · nessuna differenza · tutti i modi restano asintoticamente stabili",
-   "stato": "ok"
-  },
-  {
    "etichetta": "Polo più lento",
    "valore": "-2.13e-06 → -2.13e-06",
    "nota": "FP32 → FP32 (controllo) · nessuna differenza · strato 7 → 7, τ = 4.68e+05 → 4.68e+05",
-   "stato": null
-  },
-  {
-   "etichetta": "Polo più veloce",
-   "valore": "-2.84e+08 → -2.84e+08",
-   "nota": "FP32 → FP32 (controllo) · nessuna differenza · strato 16 → 16",
    "stato": null
   },
   {
@@ -629,15 +611,33 @@
    "stato": "ok"
   },
   {
-   "etichetta": "Errore entro il limite teorico",
-   "valore": "sì, per tutti i poli",
-   "nota": "|A_log arrotondato − A_log| ≤ metà della spaziatura del formato",
-   "stato": "ok"
-  },
-  {
    "etichetta": "Controllo FP32",
    "valore": "superato",
    "nota": "senza arrotondamento gli errori devono essere esattamente nulli",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Poli continui esaminati",
+   "valore": "589 824",
+   "nota": "24 strati × 1536 canali × 16 stati",
+   "stato": null
+  },
+  {
+   "etichetta": "Poli instabili (a ≥ 0)",
+   "valore": "0 → 0",
+   "nota": "FP32 → FP32 (controllo) · nessuna differenza · tutti i modi restano asintoticamente stabili",
+   "stato": "ok"
+  },
+  {
+   "etichetta": "Polo più veloce",
+   "valore": "-2.84e+08 → -2.84e+08",
+   "nota": "FP32 → FP32 (controllo) · nessuna differenza · strato 16 → 16",
+   "stato": null
+  },
+  {
+   "etichetta": "Errore entro il limite teorico",
+   "valore": "sì, per tutti i poli",
+   "nota": "|A_log arrotondato − A_log| ≤ metà della spaziatura del formato",
    "stato": "ok"
   }
  ],

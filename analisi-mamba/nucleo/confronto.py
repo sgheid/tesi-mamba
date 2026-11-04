@@ -5,7 +5,7 @@ from nucleo.formato import fmt_int, fmt_perc
 from nucleo.risultato import Colonna, Indicatore, Parametro
 
 # Parametro "Confronto" delle fasi: riferimento FP32 affiancato a una copia con i pesi in FP16/BF16.
-# Non c'è più una scelta "Solo FP32": ogni confronto contiene già tutte le grandezze del modello FP32
+# Ogni confronto contiene anche tutte le grandezze del modello FP32
 CONFRONTI = {"FP32 vs FP16": "FP16", "FP32 vs BF16": "BF16"}
 # Non compare nel menu: lo usa prove/fotografa_fasi.py, con errori che devono essere esattamente nulli
 CONTROLLO = "FP32 vs FP32 (controllo)"

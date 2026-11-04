@@ -114,15 +114,16 @@ st.markdown("""
   .capacita span {background: var(--superficie); border: 1px solid var(--linea); border-radius: 999px; padding: 4px 12px;
                   font-size: 0.82rem; color: var(--testo-2);}
   .capacita span::before {content: "◆"; color: var(--blu); font-size: 0.6rem; margin-right: 7px; vertical-align: 2px;}
-  .passi {display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 4px 0 20px 0;}
-  .passo {position: relative; background: var(--superficie); border: 1px solid var(--linea); border-radius: 14px;
-          padding: 20px 20px 18px 20px; box-shadow: var(--ombra); overflow: hidden;}
-  .passo::before {content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
-                  background: linear-gradient(90deg, #163e74, var(--blu), var(--blu-chiaro));}
-  .passo .num {font: 600 1.6rem var(--mono); color: var(--blu); line-height: 1;}
-  .passo .tit {font-weight: 650; color: var(--notte); margin: 10px 0 6px 0; font-size: 1.02rem;}
-  .passo .desc {font-size: 0.88rem; color: var(--testo-2); line-height: 1.55;}
-  .passo .desc b {color: var(--notte); font-weight: 600;}
+  /* Schede delle fasi nella pagina del testo: una per fase, con il suo pulsante */
+  .scheda-fase .testa {display: flex; align-items: center; gap: 10px; flex-wrap: wrap;}
+  .scheda-fase .codice {font: 600 0.74rem var(--mono); letter-spacing: 0.1em; color: var(--blu-chiaro);
+                        background: rgba(76,154,255,0.14); border: 1px solid rgba(76,154,255,0.4);
+                        padding: 3px 9px; border-radius: 8px;}
+  .scheda-fase .nome {font-weight: 650; color: var(--notte); font-size: 1.02rem;}
+  .scheda-fase .breve {font-size: 0.86rem; color: var(--testo-2); margin-top: 5px; line-height: 1.45;}
+  .scheda-fase .analisi {font: 500 0.74rem var(--mono); color: var(--tenue); margin-top: 5px;}
+  .gruppo-fasi {font: 600 0.74rem var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--tenue);
+                margin: 14px 0 6px 0;}
 
   .scheda-tecnica {display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: var(--superficie);
                    border: 1px solid var(--linea); border-radius: 14px; box-shadow: var(--ombra); margin-bottom: 12px;}
@@ -323,6 +324,15 @@ def imposta_testo(grezzo, fonte, max_token, dettagli=None):
     disegna_timeline()
 
 
+# Fasi principali (partono con "Esegui tutte le fasi") e fasi extra (pulsante a parte, es. la diagnostica della Fase 6)
+def principali(fasi):
+    return [f for f in fasi if not f.extra]
+
+
+def extra(fasi):
+    return [f for f in fasi if f.extra]
+
+
 # Ogni fase con tutte le combinazioni dei suoi parametri (es. 3a in FP16, BF16 e FP32 controllo)
 def lavori(fasi):
     elenco = []
@@ -372,26 +382,35 @@ def esegui_fase(fase, parametri, avanzamento):
     return ris, None
 
 
-# Tutte le fasi in fila, seguite nella timeline; un errore non ferma le fasi successive
-def esegui_tutte(fasi):
-    svuota_risultati()
-    st.session_state.orari["fasi_inizio"] = datetime.now()
-    for k, (fase, parametri) in enumerate(lavori(fasi)):
+# Le fasi scelte in fila (una sola, oppure tutte le principali), seguite nella timeline; un errore non ferma le
+# successive. I risultati si accumulano sullo stesso testo: rieseguire una fase sostituisce solo le sue analisi.
+# tutte: l'elenco completo delle fasi, per la posizione delle tacche nella timeline
+def esegui_fasi(scelte, tutte):
+    s = st.session_state
+    da_fare = lavori(scelte)
+    for fase, parametri in da_fare:
+        s.risultati.pop(chiave(fase, parametri), None)
+        s.errori.pop(chiave(fase, parametri), None)
+    s.esito_salvataggio = None
+    elenco = lavori(tutte)
+    s.orari["fasi_inizio"] = datetime.now()
+    for i, (fase, parametri) in enumerate(da_fare):
+        k = next(j for j, (f, p) in enumerate(elenco) if f.codice == fase.codice and p == parametri)
         # Al più un ridisegno ogni 0,15 s: le fasi chiamano l'avanzamento anche a ogni strato
         ultimo = [0.0]
 
-        def avanzamento(f, m="", k=k, ultimo=ultimo):
+        def avanzamento(f, m="", k=k, i=i, ultimo=ultimo):
             if time.time() - ultimo[0] >= 0.15:
                 ultimo[0] = time.time()
-                disegna_timeline(("fasi", k, min(max(f, 0.0), 1.0), m))
+                disegna_timeline(("fasi", k, min(max(f, 0.0), 1.0), m, i, len(da_fare)))
 
         avanzamento(0.0)
         ris, errore = esegui_fase(fase, parametri, avanzamento)
         if ris is not None:
-            st.session_state.risultati[chiave(fase, parametri)] = ris
+            s.risultati[chiave(fase, parametri)] = ris
         else:
-            st.session_state.errori[chiave(fase, parametri)] = errore
-    st.session_state.orari["fasi_fine"] = datetime.now()
+            s.errori[chiave(fase, parametri)] = errore
+    s.orari["fasi_fine"] = datetime.now()
     disegna_timeline()
 
 
@@ -429,8 +448,8 @@ def titolo_passo(segnaposto, numero, titolo, stato, tono, fatto=False, sopra=Non
                         unsafe_allow_html=True)
 
 
-def bottone_ricarica(colonna):
-    colonna.button("↻ Ricarica le fasi", width="stretch", on_click=ricarica_fasi,
+def bottone_ricarica(colonna, bloccato=False):
+    colonna.button("↻ Ricarica le fasi", width="stretch", on_click=ricarica_fasi, disabled=bloccato,
                    help="Rilegge i file in fasi/ dopo averne aggiunto o modificato uno. "
                         "I risultati in memoria vengono cancellati.")
 
@@ -679,23 +698,23 @@ def _nodo_fasi(fasi, in_corso):
     n, n_ok, n_err = len(elenco), len(s.risultati), len(s.errori)
     attivo = s.passo == "risultati"
     if in_corso and in_corso[0] == "fasi":
-        _, k, frazione, messaggio = in_corso
+        _, k, frazione, messaggio, i, n_lotto = in_corso
         trascorsi = (datetime.now() - s.orari["fasi_inizio"]).total_seconds()
         righe = [f"<b>{html_sicuro(descrivi_lavoro(*elenco[k]))}</b>"
                  + (f": {html_sicuro(messaggio)}" if messaggio else ""),
                  f"questa analisi {100 * frazione:.0f} % · {_durata(trascorsi)} dall'avvio"]
-        return "corso", _nodo(3, "Fasi", "corso", f"{k + 1} di {n}", righe, attivo, "fasi",
-                              _tacche(elenco, k), _barra((k + frazione) / n))
+        return "corso", _nodo(3, "Fasi", "corso", f"{i + 1} di {n_lotto}", righe, attivo, "fasi",
+                              _tacche(elenco, k), _barra((i + frazione) / n_lotto))
     if n_ok or n_err:
         stato = "errore" if n_err else "fatto"
         inizio, fine = s.orari.get("fasi_inizio"), s.orari.get("fasi_fine")
         durata = f" in {_durata((fine - inizio).total_seconds())} · {_ora('fasi_fine')}" if inizio and fine else ""
-        righe = [f"<b>{n_ok} di {n} completate</b>{durata}"]
+        righe = [f"<b>{n_ok} di {n} analisi completate</b>{durata}"]
         if n_err:
             righe.append(f"{n_err} non riuscite: passa il mouse sulle tacche rosse")
         return stato, _nodo(3, "Fasi", stato, f"{n_ok} di {n}", righe, attivo, "fasi", _tacche(elenco, None))
-    return "attesa", _nodo(3, "Fasi", "attesa", f"{n} analisi", ["Partono con <b>Esegui tutte le fasi</b>"], attivo,
-                           "fasi", _tacche(elenco, None))
+    return "attesa", _nodo(3, "Fasi", "attesa", f"{n} analisi", ["Si scelgono dopo il testo, una alla volta o tutte"],
+                           attivo, "fasi", _tacche(elenco, None))
 
 
 def html_timeline(fasi, in_corso=None):
@@ -715,19 +734,6 @@ def disegna_timeline(in_corso=None):
     timeline.markdown(html_timeline(fasi, in_corso), unsafe_allow_html=True)
 
 
-PASSI = [("01", "Carica il modello", "Scegli un modello Mamba-1 dalla cartella dei modelli scaricati. Viene caricato "
-          "<b>in FP32</b> su GPU o CPU e verificato: architettura, tokenizer, presenza di A_log, x_proj e dt_proj, "
-          "valori finiti e una prova di lettura."),
-         ("02", "Scegli il testo", "Testo di prova, articolo estratto da un corpus (WikiText-2 o notizie BBC mai viste "
-          "dal modello), scritto o da file .txt, diviso in token fino al limite che imposti. "
-          "Le fasi <b>2 (Δ) e 3 (margini)</b> lo fanno leggere al modello per misurare il passo Δ, che dipende "
-          "dall'input; la <b>1 (poli continui)</b> usa solo i pesi."),
-         ("03", "Leggi i risultati", "Ogni fase gira <b>solo in FP32</b> e <b>a confronto con FP16 e BF16</b>, seguita "
-          "dal vivo nella timeline in alto; Fasi 2 e 3 condividono la copia a bassa precisione. Poi scegli fase e "
-          "confronto da un menu: riquadri, grafici FP32 in blu e formato ridotto in arancione, tabella per strato. "
-          "L'Excel si salva <b>solo se lo chiedi</b>, anche tutto in un unico file.")]
-
-
 # Passo ①: scelta e caricamento del modello
 def pagina_modello(fasi):
     hero("Analisi spettrale di modelli state-space", "Analisi dei modi di Mamba",
@@ -735,9 +741,6 @@ def pagina_modello(fasi):
          "Tutto gira in locale, senza connessione.")
     capacita = "".join(f"<span>{html_sicuro(f.nome)}</span>" for f in fasi) + "<span>Esportazione in Excel</span>"
     mostra_html(f"<div class='capacita'>{capacita}</div>")
-    passi = "".join(f"<div class='passo'><div class='num'>{n}</div><div class='tit'>{t}</div>"
-                    f"<div class='desc'>{d}</div></div>" for n, t, d in PASSI)
-    mostra_html(f"<div class='passi'>{passi}</div>")
 
     with st.container(key="passo_modello"):
         titolo_passo(st.empty(), 1, "Carica il modello", "pronto" if st.session_state.info else "da caricare",
@@ -795,6 +798,13 @@ def token_corpus(corpus):
     return cache[k]
 
 
+# I pulsanti Esegui non lanciano le fasi direttamente: registrano la richiesta e la pagina si ridisegna con tutti i
+# comandi bloccati; solo dopo parte l'esecuzione. Così, mentre una fase gira, non si può premere altro (un clic durante
+# l'esecuzione interromperebbe lo script di Streamlit a metà)
+def richiedi_fasi(codici):
+    st.session_state.richiesta_fasi = list(codici)
+
+
 def estrai_altro(chiave_articolo, idonei):
     st.session_state[chiave_articolo] = corpora.estrai(idonei, st.session_state.get(chiave_articolo))
 
@@ -802,7 +812,7 @@ def estrai_altro(chiave_articolo, idonei):
 # Testo estratto da un corpus scaricato con scarica_testi.py. Sono proposti solo gli articoli lunghi almeno
 # max_token, così ogni testo estratto ha esattamente max_token token e i risultati sono confrontabili fra articoli.
 # Restituisce (testo, nome della fonte, dettagli per l'Excel) oppure (None, None, None)
-def pannello_corpus(max_token):
+def pannello_corpus(max_token, bloccato=False):
     elenco = corpora.elenco_corpora()
     if not elenco:
         st.info("Nessun corpus scaricato. Una volta sola, con la connessione, dalla cartella `analisi-mamba` con "
@@ -812,7 +822,7 @@ def pannello_corpus(max_token):
 
     c1, c2 = st.columns([3, 2], vertical_alignment="bottom")
     per_percorso = {c["percorso"]: c for c in elenco}
-    corpus = per_percorso[c1.selectbox("Corpus", list(per_percorso), key="corpus",
+    corpus = per_percorso[c1.selectbox("Corpus", list(per_percorso), key="corpus", disabled=bloccato,
                                        format_func=lambda p: per_percorso[p]["nome"])]
     c2.markdown(f"<span class='visto {'mai' if corpus.get('mai_visto') else 'forse'}'>"
                 f"{'✓ mai visto dal modello' if corpus.get('mai_visto') else '! forse visto in addestramento'}</span>",
@@ -832,10 +842,11 @@ def pannello_corpus(max_token):
         st.session_state[chiave_articolo] = corpora.estrai(idonei)
     c1, c2 = st.columns([4, 1], vertical_alignment="bottom")
     c1.selectbox(f"Articolo ({len(idonei)} su {len(articoli)} hanno almeno {max_token} token)", idonei,
-                 key=chiave_articolo,
+                 key=chiave_articolo, disabled=bloccato,
                  format_func=lambda k: f"{articoli[k]['titolo']}" + (f" · {articoli[k]['data']}" if articoli[k]["data"]
                                                                     else "") + f" · {n_token[k]} token")
     c2.button("🎲 Estrai un altro", width="stretch", on_click=estrai_altro, args=(chiave_articolo, idonei),
+              disabled=bloccato,
               help="Sceglie a caso un altro articolo fra quelli abbastanza lunghi.")
 
     k = st.session_state[chiave_articolo]
@@ -853,12 +864,16 @@ def pannello_corpus(max_token):
     return a["testo"], fonte, corpora.dettagli(corpus, k, n_token[k])
 
 
-# Passo ②: scelta del testo, poi esecuzione di tutte le fasi
+# Passo ②: scelta del testo e delle fasi da eseguire (una alla volta o tutte)
 def pagina_testo(fasi):
+    # Richiesta di esecuzione dal clic precedente: in questo passaggio tutti i comandi sono disegnati bloccati e,
+    # alla fine della pagina, partono le fasi richieste
+    richiesta = st.session_state.pop("richiesta_fasi", None)
+    bloccato = richiesta is not None
     intestazione_modello(st.session_state.info)
     with st.container(key="passo_testo"):
         titolo_passo(st.empty(), 2, "Scegli il testo", "da scegliere", "attesa")
-        fonte = st.radio("Fonte", FONTI, horizontal=True, key="fonte", label_visibility="collapsed")
+        fonte = st.radio("Fonte", FONTI, horizontal=True, key="fonte", label_visibility="collapsed", disabled=bloccato)
         # Il limite serve già alla scelta degli articoli del corpus: si legge dallo stato del widget, disegnato più sotto
         max_token = int(st.session_state.get("max_token", MAX_TOKEN_PREDEFINITO))
         grezzo = caricato = nome_corpus = None
@@ -869,18 +884,21 @@ def pagina_testo(fasi):
             grezzo = TESTO_ESEMPIO
             st.text_area("Testo di prova", TESTO_ESEMPIO, height=230, disabled=True, label_visibility="collapsed")
         elif fonte == FONTI[1]:
-            grezzo, nome_corpus, dettagli = pannello_corpus(max_token)
+            grezzo, nome_corpus, dettagli = pannello_corpus(max_token, bloccato)
         elif fonte == FONTI[2]:
             grezzo = st.text_area("Testo", height=230, key="testo_incollato", label_visibility="collapsed",
+                                  disabled=bloccato,
                                   placeholder="Scrivi o incolla qui il testo (in inglese, come i dati di addestramento "
                                               "di Mamba).")
         else:
-            caricato = st.file_uploader("File di testo", type=["txt", "md"], label_visibility="collapsed")
+            caricato = st.file_uploader("File di testo", type=["txt", "md"], label_visibility="collapsed",
+                                        disabled=bloccato)
             if caricato is not None:
                 grezzo = caricato.getvalue().decode("utf-8", errors="replace")
                 st.text_area("Contenuto del file", grezzo, height=230, disabled=True, label_visibility="collapsed",
                              key=f"anteprima_{caricato.name}_{caricato.size}")
         max_token = st.number_input("Token massimi", 16, 8192, MAX_TOKEN_PREDEFINITO, step=64, key="max_token",
+                                    disabled=bloccato,
                                     help=f"I testi più lunghi vengono troncati. Mamba è addestrato su sequenze di "
                                          f"{corpora.LUNGHEZZA_ADDESTRAMENTO} token: oltre, il modello lavora fuori dal "
                                          "regime di addestramento. Dal corpus sono proposti solo articoli lunghi "
@@ -893,19 +911,84 @@ def pagina_testo(fasi):
             n = len(st.session_state.tok(grezzo.strip()).input_ids)
             st.caption(f"{n} token" + (f": verranno analizzati i primi {int(max_token)}" if n > max_token else ""))
 
-        elenco = lavori(fasi)
-        st.caption(f"Verranno eseguite {len(elenco)} analisi: "
-                   + ", ".join(descrivi_lavoro(f, p).replace("Fase ", "") for f, p in elenco) + ".")
-        c1, c2, c3 = st.columns([1, 1, 2])
-        c1.button("← Cambia modello", width="stretch", on_click=vai, args=("modello",))
-        bottone_ricarica(c2)
-        if c3.button("Esegui tutte le fasi →", type="primary", disabled=not pronto, width="stretch"):
-            nome_fonte = {FONTI[0]: "testo di prova", FONTI[1]: nome_corpus, FONTI[2]: "testo scritto o incollato"}.get(
-                fonte, f"file {getattr(caricato, 'name', '')}")
+        nome_fonte = {FONTI[0]: "testo di prova", FONTI[1]: nome_corpus, FONTI[2]: "testo scritto o incollato"}.get(
+            fonte, f"file {getattr(caricato, 'name', '')}")
+
+    # Scelta delle fasi: una scheda per fase con il suo pulsante, più "Esegui tutte le fasi" (solo le principali).
+    # I risultati restano in memoria finché il testo non cambia: si possono eseguire le fasi una alla volta
+    s = st.session_state
+    t = s.testo
+    stesso_testo = bool(pronto and t and t["grezzo"] == grezzo.strip() and t["max_token"] == int(max_token))
+    in_memoria = len(s.risultati) + len(s.errori)
+    da_eseguire = [f for f in fasi if f.codice in richiesta] if bloccato and pronto else None
+    with st.container(key="passo_fasi"):
+        titolo_passo(st.empty(), 3, "Scegli le fasi",
+                     "esecuzione in corso" if da_eseguire else
+                     f"{len(s.risultati)} analisi in memoria" if stesso_testo and in_memoria else "da eseguire",
+                     "codice" if da_eseguire else "ok" if stesso_testo and s.risultati else "attesa")
+        if da_eseguire:
+            st.info(f"In esecuzione: {', '.join(f'Fase {f.codice}' for f in da_eseguire)} "
+                    f"({len(lavori(da_eseguire))} analisi). I comandi restano bloccati fino alla fine; l'avanzamento è "
+                    "nella timeline in alto.", icon="⏳")
+        if in_memoria and not stesso_testo:
+            st.caption(f"⚠ Il testo è cambiato: eseguendo una fase le {in_memoria} analisi in memoria vengono "
+                       "cancellate (salvale prima dalla pagina dei risultati).")
+        gruppi = [("Fasi", principali(fasi)), ("Fasi extra · non fanno parte di Esegui tutte le fasi", extra(fasi))]
+        for titolo, elenco_fasi in gruppi:
+            if not elenco_fasi:
+                continue
+            mostra_html(f"<div class='gruppo-fasi'>{html_sicuro(titolo)}</div>")
+            for fase in elenco_fasi:
+                scheda_fase(fase, stesso_testo, pronto and not bloccato)
+
+        elenco = lavori(principali(fasi))
+        st.caption(f"*Esegui tutte le fasi* lancia {len(elenco)} analisi: "
+                   + ", ".join(descrivi_lavoro(f, p).replace("Fase ", "") for f, p in elenco)
+                   + ". Le fasi extra si eseguono solo dalla loro scheda.")
+        c1, c2, c3, c4 = st.columns([1, 1, 1, 2])
+        c1.button("← Cambia modello", width="stretch", on_click=vai, args=("modello",), disabled=bloccato)
+        bottone_ricarica(c2, bloccato)
+        c3.button("Vai ai risultati →", width="stretch", on_click=vai, args=("risultati",),
+                  disabled=bloccato or not (stesso_testo and in_memoria))
+        c4.button("Esegui tutte le fasi →", type="primary", disabled=bloccato or not pronto, width="stretch",
+                  on_click=richiedi_fasi, args=([f.codice for f in principali(fasi)],))
+
+    if da_eseguire:
+        if not stesso_testo:
+            svuota_risultati()
             imposta_testo(grezzo.strip(), nome_fonte, int(max_token), dettagli)
-            esegui_tutte(fasi)
-            vai("risultati")
-            st.rerun()
+        esegui_fasi(da_eseguire, fasi)
+        s["fase_scelta"] = da_eseguire[0]
+        vai("risultati")
+        st.rerun()
+
+
+# Scheda di una fase nella pagina del testo: nome, spiegazione breve, analisi che lancia, esito se già eseguita sul
+# testo attuale, spiegazione completa a richiesta e pulsante (attivo solo se attivo=True)
+def scheda_fase(fase, stesso_testo, attivo):
+    s = st.session_state
+    elenco = lavori([fase])
+    fatte = [c for c in (chiave(f, p) for f, p in elenco) if c in s.risultati] if stesso_testo else []
+    errate = [c for c in (chiave(f, p) for f, p in elenco) if c in s.errori] if stesso_testo else []
+    if errate:
+        chip = f"<span class='chip errore'>{len(errate)} non riuscite</span>"
+    elif fatte:
+        chip = "<span class='chip ok'>✓ eseguita</span>"
+    else:
+        chip = ""
+    with st.container(border=True, key=f"scheda_fase_{fase.codice}"):
+        c1, c2 = st.columns([5, 1], vertical_alignment="center")
+        with c1:
+            mostra_html(f"<div class='scheda-fase'><div class='testa'><span class='codice'>FASE "
+                        f"{html_sicuro(fase.codice)}</span><span class='nome'>{html_sicuro(fase.nome)}</span>{chip}</div>"
+                        f"<div class='breve'>{html_sicuro(fase.breve)}</div>"
+                        f"<div class='analisi'>{len(elenco)} analisi: "
+                        f"{html_sicuro(', '.join(' · '.join(map(str, p.values())) or 'unica' for _, p in elenco))}"
+                        f"{'' if fase.usa_testo else ' · usa solo i pesi'}</div></div>")
+            with st.expander("Cosa misura"):
+                st.markdown(fase.spiegazione)
+        c2.button("Riesegui" if fatte or errate else "Esegui", key=f"esegui_fase_{fase.codice}",
+                  disabled=not attivo, width="stretch", on_click=richiedi_fasi, args=([fase.codice],))
 
 
 # Passo ③: tutte le fasi già eseguite, sfogliabili da un menu; salvataggio su disco solo a richiesta
@@ -918,11 +1001,12 @@ def pagina_risultati(fasi):
          f"{html_sicuro(t['fonte'])} · {len(risultati)} analisi completate"
          + (f", {len(errori)} non riuscite" if errori else ""))
     c1, c2, c3, _ = st.columns([1, 1, 1, 2])
-    c1.button("← Cambia testo", width="stretch", on_click=vai, args=("testo",))
+    c1.button("← Testo e fasi", width="stretch", on_click=vai, args=("testo",),
+              help="Torna alla scelta delle fasi: con lo stesso testo i risultati restano in memoria e si aggiungono.")
     c2.button("← Cambia modello", width="stretch", on_click=vai, args=("modello",))
     bottone_ricarica(c3)
     if not eseguite:
-        st.warning("Nessuna fase eseguita: torna al testo e premi *Esegui tutte le fasi*.")
+        st.warning("Nessuna fase eseguita: torna a *Testo e fasi* e scegli una fase o *Esegui tutte le fasi*.")
         return
 
     colonne = st.columns([3] + [1] * max(len(p.parametri) for p in eseguite))

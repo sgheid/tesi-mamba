@@ -45,7 +45,7 @@ $\log \mathrm{KL}$ contro $\log t$ lo rende un numero: circa 0 se l'errore resta
 se si accumula nei modi su 1. **Esempio:** pendenza 2 vuol dire che da 1 000 a 2 000 token la KL si quadruplica.
 
 **Stato massimo.** Il più grande $|h|$ è misurato con la ricorrenza FP32 originale, in B1 e in B2: in aritmetica esatta lo
-stato di Mamba è una media pesata degli ingressi e resta limitato (Capitolo 2); se i poli su 1 diventano integratori
+stato di Mamba è una media pesata degli ingressi e resta limitato; se i poli su 1 diventano integratori
 lo stato può crescere, e il confronto tra le tre colonne lo mostra.
 """
 
@@ -103,7 +103,6 @@ def esegui(ctx):
                   stato_max_b1=b1["stato_max"], stato_max_b2=b2["stato_max"], non_finiti_stato_b2=b2["non_finiti_stato"])
              for r, r32, s32, b1, b2 in zip(per_formato[nome], riferimento, strati32, uscite["B1"]["strati"],
                                             uscite["B2"]["strati"])]
-    n = len(righe)
     somma = lambda chiave, elenco=righe: sum(valori(elenco, chiave))
     totale, nuovi, rilevanti = somma("totale"), somma("nuovi_1"), somma("nuovi_1_rilevanti")
     s = soglie[nome]
@@ -448,7 +447,7 @@ def _grafico_stato(righe, nome):
         f"""
 - **Blu** = ricorrenza FP32 originale, **arancione chiaro** = B1 (solo $\\bar a$ in {nome}), **arancione** = B2 (anche
   lo stato in {nome}).
-- In FP32 lo stato è una media pesata degli ingressi e resta limitato (Capitolo 2). Con i poli portati a 1 lo stato non
+- In FP32 lo stato è una media pesata degli ingressi e resta limitato. Con i poli portati a 1 lo stato non
   decade più e può crescere token dopo token: se le linee arancioni stanno sopra la blu, gli integratori fanno crescere
   lo stato; se B2 sta sotto B1, l'arrotondamento dello stato assorbe i contributi piccoli e frena la crescita.
 - **Linea rossa** (solo FP16) = 65 504, il più grande numero finito di FP16: un punto che la raggiunge vuol dire

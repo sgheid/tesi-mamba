@@ -57,12 +57,6 @@
  ],
  "indicatori": [
   {
-   "etichetta": "Formato dei pesi",
-   "valore": "BF16",
-   "nota": "modello FP32 intatto (impronta dei pesi verificata)",
-   "stato": "ok"
-  },
-  {
    "etichetta": "Perplexity",
    "valore": "24.4533 → 24.1627",
    "nota": "FP32 → BF16 · differenza relativa −1.19 % · su 210 predizioni",
@@ -73,6 +67,24 @@
    "valore": "4.52e-03",
    "nota": "nat per posizione · mediana 3.37e-03 · P99 1.90e-02",
    "stato": null
+  },
+  {
+   "etichetta": "KL: primo → ultimo quarto del testo",
+   "valore": "4.49e-03 → 4.02e-03",
+   "nota": "differenza relativa −10.4 %",
+   "stato": null
+  },
+  {
+   "etichetta": "Pendenza della KL lungo il testo",
+   "valore": "+0.07",
+   "nota": "retta di log KL contro log posizione, 6 blocchi da 32 posizioni, R² = 0.04 · 0 = errore costante, 1 = cresce come t, 2 = come t² (accumulo nei modi su 1)",
+   "stato": null
+  },
+  {
+   "etichetta": "Formato dei pesi",
+   "valore": "BF16",
+   "nota": "modello FP32 intatto (impronta dei pesi verificata)",
+   "stato": "ok"
   },
   {
    "etichetta": "KL massima",
@@ -90,12 +102,6 @@
    "etichetta": "ΔNLL media",
    "valore": "-1.20e-02 nat",
    "nota": "il formato ridotto dà in media più probabilità al token vero",
-   "stato": null
-  },
-  {
-   "etichetta": "KL: primo → ultimo quarto del testo",
-   "valore": "4.49e-03 → 4.02e-03",
-   "nota": "differenza relativa −10.4 %",
    "stato": null
   },
   {
